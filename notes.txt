@@ -1,0 +1,48 @@
+// Potentiel need de crere un get response et send info pour server et client
+
+    malloc
+    free
+    write
+
+convert ip address
+    htons
+    htonl
+    ntohs
+    ntohl
+
+    inet_addr
+https://linux.die.net/man/3/inet_addr
+
+    poll
+https://man7.org/linux/man-pages/man2/poll.2.html
+https://linuxhint.com/use-poll-system-call-c/
+    epoll
+        epoll_create
+        epoll_ctl
+        epoll_wait
+https://man7.org/linux/man-pages/man7/epoll.7.html
+    kqueue
+        kqueue
+        kevent
+https://man.openbsd.org/kevent.2
+
+    socket
+https://man7.org/linux/man-pages/man2/socket.2.html
+    ****    sockadress_in
+http://queinnec.perso.enseeiht.fr/Ens/Socket/sujet-tp002.html
+http://manpagesfr.free.fr/man/man7/ip.7.html
+    setsockopt
+https://linux.die.net/man/2/setsockopt
+    getsockname
+https://man7.org/linux/man-pages/man2/getsockname.2.html
+    bind
+https://man7.org/linux/man-pages/man2/bind.2.html
+    connect
+https://man7.org/linux/man-pages/man2/connect.2.html
+
+    accept
+    listen
+    send
+    recv
+    select
+    fcntl
