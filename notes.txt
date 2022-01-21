@@ -1,5 +1,8 @@
 // Potentiel need de crere un get response et send info pour server et client
 
+https://www.systutorials.com/docs/linux/man/1-siege/
+a check car utilisé en correction
+
     malloc
     free
     write
@@ -13,6 +16,8 @@ convert ip address
     inet_addr
 https://linux.die.net/man/3/inet_addr
 
+// I chose linuw specific epoll
+https://suchprogramming.com/epoll-in-3-easy-steps/
     poll
 https://man7.org/linux/man-pages/man2/poll.2.html
 https://linuxhint.com/use-poll-system-call-c/

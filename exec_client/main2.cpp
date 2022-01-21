@@ -1,6 +1,7 @@
 #include "../socket.hpp"
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/epoll.h> // queue handling
 
 int main(){
     char hello[] = "Hello from client";
@@ -15,7 +16,7 @@ int main(){
             return 0;
         printf("%s\n",buffer );
     }
-    catch (std::exception &e){
+    catch (Socket::failed_socket &e){
         std::cerr << e.what() << std::endl;
         return (0);
     }
