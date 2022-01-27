@@ -6,10 +6,6 @@
 int Socket::get_fd(){
     return this->fd_sock;
 }
-// const char * Socket::failed_socket::what(char * msg) const throw()
-// {
-//     return msg;
-// }
 Socket::failed_socket::failed_socket(char *msg){
     this->msg = msg;
 }
