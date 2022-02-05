@@ -5,36 +5,39 @@
 #include "request.hpp"
 #define MAX_EVENTS 5
 
-std::string first_dispatch(char *msg){
+std::string first_dispatch(char *msg, int fd){
     Request R;
+// TO DO check http version to match
     if (msg[0] == 'G' && msg[1] == 'E' && msg[2] == 'T')
-        R.handle_get(msg);
-    // else if (msg[0] == 'D' && msg[1] == 'E')
-    //     R.handle_delete(msg);
-    // else if (msg[0] == 'P' && msg[1] == 'O' && msg[2] == 'S' && msg[3] == 'T')
-    //     R.handle_post(msg);
-    else
+        R.handle_get(msg, fd);
+    else if (msg[0] == 'D' && msg[1] == 'E' && msg[2] == 'L' && msg[3] == 'E' && msg[4] == 'T' && msg[5] == 'E')
+        R.handle_delete(msg);
+    else if (msg[0] == 'P' && msg[1] == 'O' && msg[2] == 'S' && msg[3] == 'T')
+        R.handle_post(msg, fd);
+    else if (msg == NULL)
         R.set_error(400);
+    else
+        R.set_error(405);
     return R.response;
 }
 
 int launch(){
     //create server
+// TO DO proper error handling without the big ass try catch
     try{
-        // Socket serv(AF_INET, SOCK_STREAM, 0, 3000, INADDR_ANY, 1);
-        // struct epoll_event event;
         struct epoll_event event;
         struct epoll_event events[MAX_EVENTS];
         int event_count;
-        // char hello[] = "<html><body><p>Kikou</p></body></html>";
         
+        // crea de la socket
         Socket serv(8080, INADDR_ANY, 1);
         serv.server_binding();
+// TO DO include socket in queue
         serv.server_listening(10);
         while (1){
             int new_sock = serv.server_accept();
                         char buffer[30000] = {0};
-
+            // crea du systeme de gestion de requetes
             int queue = epoll_create1(0); // takes flag so none for now
             if (queue == -1){
                 std::cout << "wtf epoll1" << std::endl;
@@ -54,18 +57,13 @@ int launch(){
             {
                 std::cout << "Reading file descriptor" << events[i].data.fd << std::endl;
                 long valread = read(events[i].data.fd, buffer, 30000);
-                // ICI INTEGRER TRAITEMENT REQUETE CLIENT
-                std::cout << "percy" << std::endl;
                 if (valread == -1)
                     return 0;
                 std::cout << buffer << std::endl;
-                std::string test = first_dispatch(buffer);
-                std::cout <<  test << std::endl;
-
-                write(events[i].data.fd , test.c_str(), test.size());
-                
+                // gestion requete
+                std::string response = first_dispatch(buffer, events[i].data.fd);
+                write(events[i].data.fd , response.c_str(), response.size());
                 std::cout << "percy" << std::endl;
-                write(2, test.c_str(), test.size());
             }
                 close(queue);
                 close(new_sock);
