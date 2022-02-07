@@ -59,7 +59,7 @@ int launch(){
                 long valread = read(events[i].data.fd, buffer, 30000);
                 if (valread == -1)
                     return 0;
-                std::cout << buffer << std::endl;
+                // std::cout << buffer << std::endl;
                 // gestion requete
                 std::string response = first_dispatch(buffer, events[i].data.fd);
                 write(events[i].data.fd , response.c_str(), response.size());
