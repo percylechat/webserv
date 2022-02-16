@@ -3,17 +3,19 @@
 #include <unistd.h>
 #include <sys/epoll.h> // queue handling
 #include "request.hpp"
+#include <vector>
 #define MAX_EVENTS 5
 
-std::string first_dispatch(char *msg, int fd){
+std::string first_dispatch(char *msg, int fd, std::vector<std::string> cat){
     Request R;
 // TO DO check http version to match
     if (msg[0] == 'G' && msg[1] == 'E' && msg[2] == 'T')
-        R.handle_get(msg, fd);
+        R.handle_get(msg, fd, cat);
     else if (msg[0] == 'D' && msg[1] == 'E' && msg[2] == 'L' && msg[3] == 'E' && msg[4] == 'T' && msg[5] == 'E')
+// can delete env elt?
         R.handle_delete(msg);
     else if (msg[0] == 'P' && msg[1] == 'O' && msg[2] == 'S' && msg[3] == 'T')
-        R.handle_post(msg, fd);
+        R.handle_post(msg, fd, cat);
     else if (msg == NULL)
         R.set_error(400);
     else
@@ -21,7 +23,7 @@ std::string first_dispatch(char *msg, int fd){
     return R.response;
 }
 
-int launch(){
+int launch(std::vector<std::string> cat){
     //create server
 // TO DO proper error handling without the big ass try catch
     try{
@@ -61,9 +63,15 @@ int launch(){
                     return 0;
                 // std::cout << buffer << std::endl;
                 // gestion requete
-                std::string response = first_dispatch(buffer, events[i].data.fd);
+                std::string response = first_dispatch(buffer, events[i].data.fd, cat);
+                response.append("done");
                 write(events[i].data.fd , response.c_str(), response.size());
                 std::cout << "percy" << std::endl;
+                std::vector<std::string>::iterator test = cat.begin();
+                while (test != cat.end()){
+                    std::cout << *test << std::endl;
+                    test++;
+                }
             }
                 close(queue);
                 close(new_sock);
@@ -91,6 +99,15 @@ int main(){//(int argc, char *argv[]){
         //     std::cerr << conf.getstatuserror() << std::endl;
         //     return 1;
         // }
-        return launch();
+        // char **new_env;
+        std::vector<std::string> cat;
+                    std::vector<std::string>::iterator test = cat.begin();
+            while (test != cat.end()){
+                std::cout << *test << std::endl;
+                test++;
+            }
+        cat.push_back("CHATON");
+        cat.push_back("KERO");
+        return launch(cat);
     // return 0;
 }

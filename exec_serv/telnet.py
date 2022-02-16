@@ -39,26 +39,46 @@ timeout = 100
 # # cv2.destroyAllWindows()
 
 
-f = open('chat.jpg', 'rb') # opening a binary file
-content = f.read() # reading all lines 
-f.close()
+# f = open('chat.jpg', 'rb') # opening a binary file
+# content = f.read() # reading all lines 
+# f.close()
 
-# data = open("chat.jpg", "rb").read()
-# encoded = base64.b64encode(data)
+# # data = open("chat.jpg", "rb").read()
+# # encoded = base64.b64encode(data)
 
-raw = """POST /hello HTTP/1.1
-Content-Disposition: form-data; name="files[]"; filename="chat.jpg"
-Content-Type: image/jpg
-Content-Length: %s
+# raw = """POST /hello HTTP/1.1
+# Content-Disposition: form-data; name="files[]"; filename="norminet.jpg"
+# Content-Type: image/jpg
+# Content-Length: %s
 
 
-""" % (
-    len(content)
-)
+# """ % (
+#     len(content)
+# )
+
+# raw = """POST / HTTP/1.1
+# Content-Type: application/x-www-form-urlencoded 
+# Content-Length: 34
+
+# cat=Ivitch&enfant=bebe&cat=Lolilol"""
+
+raw = """POST / HTTP/1.1
+Content-Type: multipart/form-data
+Content-Length: 151;boundary="hibourigolo"
+
+--hibourigolo
+Content-Disposition: form-data; name="cat"
+
+hello
+--hibourigolo
+Content-Disposition: form-data; name="test"; filename="example.txt"
+
+nope"""
+
 raw_byte = str.encode(raw)
 with telnetlib.Telnet(host, port, timeout) as session:
-    session.write(raw_byte + content)
-    output = session.read_until(b"OK", timeout)
+    session.write(raw_byte)
+    output = session.read_until(b"done", timeout)
     session.close()
     print(output)
     print("Done")
