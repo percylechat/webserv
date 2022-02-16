@@ -25,11 +25,12 @@ class Socket{
 //SERVER SOCKET
 /////////////////////////////////////////////
         // Socket(int domain, int service, int protocol, int port, u_long interface, bool server);
-        Socket(int port, in_addr_t interface, bool server);
+        Socket(bool server);
 // server funct: first the socket is binded to a specifi address, then it is set to listen.
 // when a connexion occurs, server_accept creates a new socket modelling the original and handles it.
-        void server_binding();
-        void server_listening(int backlog);
+        char *create_socket(int port, in_addr_t interface);
+        char *server_binding();
+        char *server_listening(int backlog);
         int server_accept();
 /////////////////////////////////////////////
 //CLIENT SOCKET

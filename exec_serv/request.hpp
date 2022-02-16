@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <vector>
 #include <cstring>
+#include "utils.hpp"
 
 #include <fcntl.h>
 #include <sys/types.h>

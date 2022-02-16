@@ -17,8 +17,10 @@ const char *Socket::failed_socket::what() const throw(){
 /////////////////////////////////////////////
 
 // Socket::Socket(int domain, int service, int protocol, int port, u_long interface, bool server){
-Socket::Socket(int port, in_addr_t interface, bool server){
+Socket::Socket(bool server){
     this->is_server = server;
+}
+char *Socket::create_socket(int port, in_addr_t interface){
 // preparation pour l'assignation de la,socket a un port(bind)
     this->address.sin_family = AF_INET; //(AF_INET?)
     this->address.sin_port = htons(port); // A CHECK BONNE CONV
@@ -29,34 +31,29 @@ Socket::Socket(int port, in_addr_t interface, bool server){
 // PROTOCOL: For TCP/IP sockets, we want to specify the IP address family (AF_INET) and virtual circuit service (SOCK_STREAM).
 // Since there’s only one form of virtual circuit service, there are no variations of the protocol, so the last argument, protocol, is zero.
     if (this->fd_sock == -1)
-        throw failed_socket((char*)"Error: failure to create server socket");
+        return "Error: failure to create server socket";
+    return NULL;
 }
-void Socket::server_binding(){
+char *Socket::server_binding(){
 //this part linked to memset that we try not to do?
     if (sizeof(this->address) < 0)
-        throw failed_socket((char*)"Error: failure to bind server_socket");
+        return "Error: failure to bind server_socket";
     int res = bind(this->fd_sock, (struct sockaddr *)&this->address, sizeof(this->address));
-    if (res != 0){
-        std::cout << errno << std::endl;
-        throw failed_socket((char*)"Error: failure to bind server_socket");
-    }
+    if (res != 0)
+        return "Error: failure to bind server_socket";
+    return NULL;
 }
-void Socket::server_listening(int backlog){
+char *Socket::server_listening(int backlog){
     int res = listen(this->fd_sock, backlog);
     if (res != 0)
-        throw failed_socket((char*)"Error: failure to listen from server_socket");
+        return "Error: failure to listen from server_socket";
+    return NULL;
 }
 int Socket::server_accept(){
-            std::cout << "halp" << std::endl;
     int buf = sizeof(this->address);
     if (buf < 0)
-        throw failed_socket((char*)"Error: failure to accept in server_socket");
-                std::cout << "halp" << std::endl;
-    int res = accept(this->fd_sock, (struct sockaddr *)&this->address, (socklen_t*)&buf);
-                std::cout << "halp" << std::endl;
-    if (res == -1)
-        throw failed_socket((char*)"Error: failure to accept in server_socket");
-    return res;
+        return -1;
+    return accept(this->fd_sock, (struct sockaddr *)&this->address, (socklen_t*)&buf);
 }
 
 /////////////////////////////////////////////

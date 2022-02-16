@@ -1,49 +1,6 @@
 #include "request.hpp"
 
-void Request::set_error(int err){
-    this->error_code = err;
-    this->success = false;
-    if (err == 400){
-// for now for missing extension in file
-        this->error_msg = "Bad Request";
-        this->response.append("400 ");
-        this->response.append(this->error_msg);
-        this->response.append(" Content-Type: text/html Context-Lenght: 101\n\n");
-        this->response.append("<html><body>400 BAD REQUEST<img src=\"error/400.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
-    }
-    else if (err == 404){
-// for now, couldn't open file so does not exist
-        this->error_msg = "Not Found";
-        this->response.append("404 ");
-        this->response.append(this->error_msg);
-        this->response.append(" Content-Type: text/html Context-Lenght: 91\n\n");
-        this->response.append("<html><body>404 NOT FOUND<img src=\"error/404.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
-    }
-    else if (err == 405){
-// is not GET POST or DELETE
-        this->error_msg = "Method Not Allowed";
-        this->response.append("405 ");
-        this->response.append(this->error_msg);
-        this->response.append(" Content-Type: text/html Context-Lenght: 109\n\n");
-        this->response.append("<html><body>405 METHOD NOT ALLOWED <img src=\"error/405.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
-    }
-    else if (err == 411){
-// content lenght missing
-        this->error_msg = "Length Required";
-        this->response.append("411 ");
-        this->response.append(this->error_msg);
-        this->response.append(" Content-Type: text/html Context-Lenght: 109\n\n");
-        this->response.append("<html><body>411 LENGHT REQUIRED <img src=\"error/411.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
-    }
-    else if (err == 500){
-// For now, couldn't delete file
-        this->error_msg = "Internal Server Error";
-        this->response.append("500 ");
-        this->response.append(this->error_msg);
-        this->response.append(" Content-Type: text/html Context-Lenght: 112\n\n");
-        this->response.append("<html><body>500 INTERNAL SERVER ERROR <img src=\"error/500.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
-    }
-}
+//TO DO create "key" value that is checked to add stuff (serevarl keys?)
 
 // void Request::go_cgi_get(std::string file){
 // need env? mais env total ou que celui de server?
@@ -56,6 +13,7 @@ void Request::set_error(int err){
 // }
 
 void Request::handle_delete(char *msg){
+// TO DO change in order to delete elt in vector
     std::string file = this->get_file(msg);
     if (remove(file.c_str()) != 0)
         this->set_error(500);
@@ -63,7 +21,8 @@ void Request::handle_delete(char *msg){
         this->response.append("200 OK");
 }
 
-// CHECK \n ou \r pour fin de ligne??
+// TO DO CHECK \n ou \r pour fin de ligne??
+// WIP, can't get img file content for now, txt okay
 void Request::get_file_post(std::string mess){
 //     int file_start = mess.find("filename=\"") + 11;
 //     if (file_start == 11)
@@ -113,73 +72,6 @@ std::cout << "hello end" << std::endl;
 	// std::string data(oss.str());
 }
 
-int count_occ(std::string txt, std::string word){
-// count number of word occurences in string
-    int j = 0;
-    while (1){
-        std::size_t i = txt.find(word);
-        if (i == txt.npos)
-            return j;
-        j++;
-        txt = txt.substr(i + word.length(), txt.length() - (i + word.length()));
-    }
-}
-//TO DO create "key" value that is checked to add stuff
-
-void Request::handle_multipart(std::string mess, std::vector<std::string> cat){
-    std::size_t start = mess.find("boundary=\"");
-    std::cout << "lol1" << std::endl;
-    if (start == mess.npos)
-        return this->set_error(400);
-    start += 11;
-    size_t end = start;
-    while (mess[end] != '"' && mess[end - 1] != '\\')
-        end++;
-    std::cout << "lol2" << std::endl;
-// TO DO Encapsulation boundaries must not appear within the encapsulations, and must be no longer than 70 characters, not counting the two leading hyphens. 
-    std::string boundary = mess.substr(start, end - start);
-    std::cout << "lol3" << std::endl;
-    if (boundary.size() > 70)
-        return this->set_error(400);
-    std::cout << "lol4" << std::endl;
-    int i = count_occ(mess, boundary);
-    int j = 1;
-    std::size_t stop = mess.find("name=\"");
-    if (stop == mess.npos)
-        return this->set_error(400);
-    std::string content = mess.substr(stop, mess.size() - stop);
-    std::cout << "lol5 content " << content << std::endl;
-// TO DO what if malformed request with no boundary
-    while (j < i){
-        std::size_t m = content.find("name=\"");
-        if (m == content.npos)
-            return this->set_error(400);
-        m += 6;
-        std::size_t n = m;
-        while (content[n] != '\"')
-            n++;
-        std::cout << "lol6" << std::endl;
-        std::string key = content.substr(m, n - m);
-// TO DO content disposition and filename and content type
-            std::cout << "lol7 key " << key << std::endl;
-        std::size_t u = n += 1;
-        while (content[u] != '\n'){
-            std::cout << content[u] << std::endl;
-            u++;
-        }
-        u += 2;
-        std::size_t f = u;
-        while (content[f] != ' ' && content[f] != '\n' && content[f] != '\r' && content[f] != '-')
-            f++;
-        std::string value = content.substr(u, f - u);
-        std::cout << "lol8 value " << value << std::endl;
-        if (key == "cat")
-            cat.push_back(value);
-        if (i - 1 != j)
-            content = content.substr(f + boundary.size() + 3, content.size() - (3 + f + boundary.size()));
-        std::cout << "lol9" << std::endl;
-        j++;
-    }
 // POST /test.html HTTP/1.1
 // Host: example.org
 // Content-Type: multipart/form-data;boundary="boundary"
@@ -192,11 +84,61 @@ void Request::handle_multipart(std::string mess, std::vector<std::string> cat){
 // Content-Disposition: form-data; name="field2"; filename="example.txt"
 
 // value2
+void Request::handle_multipart(std::string mess, std::vector<std::string> cat){
+    std::size_t start = mess.find("boundary=\"");
+    if (start == mess.npos)
+        return this->set_error(400);
+    start += 11;
+    size_t end = start;
+    while (mess[end] != '"' && mess[end - 1] != '\\')
+        end++;
+// TO DO Encapsulation boundaries must not appear within the encapsulations, and must be no longer than 70 characters, not counting the two leading hyphens. 
+    std::string boundary = mess.substr(start, end - start);
+    if (boundary.size() > 70)
+        return this->set_error(400);
+    int i = count_occ(mess, boundary);
+    int j = 1;
+    std::size_t stop = mess.find("name=\"");
+    if (stop == mess.npos)
+        return this->set_error(400);
+    std::string content = mess.substr(stop, mess.size() - stop);
+// TO DO what if malformed request with no boundary
+    while (j < i){
+        std::size_t m = content.find("name=\"");
+        if (m == content.npos)
+            return this->set_error(400);
+        m += 6;
+        std::size_t n = m;
+        while (content[n] != '\"')
+            n++;
+        std::string key = content.substr(m, n - m);
+// TO DO content disposition and filename and content type
+        std::size_t u = n += 1;
+        while (content[u] != '\n'){
+            std::cout << content[u] << std::endl;
+            u++;
+        }
+        u += 2;
+        std::size_t f = u;
+        while (content[f] != ' ' && content[f] != '\n' && content[f] != '\r' && content[f] != '-')
+            f++;
+        std::string value = content.substr(u, f - u);
+        if (key == "cat")
+            cat.push_back(value);
+        if (i - 1 != j)
+            content = content.substr(f + boundary.size() + 3, content.size() - (3 + f + boundary.size()));
+        j++;
+    }
 }
 
+// POST / HTTP/1.1
+// [[ Less interesting headers ... ]]
+// Content-Type: application/x-www-form-urlencoded
+// Content-Length: 51
+
+// text1=text+default&text2=a%CF%89b&file1=a.txt&file2=a.html&file3=binary
 void Request::extract_data_post(std::string mess, std::vector<std::string> cat){
 //TO DO  Les caractères non alphanumériques sont percent encoded 
-std::cout << "PING1" << std::endl;
     int file_start = mess.find("Content-Length: ") + 16;
     if (file_start == 16)
         return this->set_error(411);
@@ -210,36 +152,23 @@ std::cout << "PING1" << std::endl;
         return this->set_error(400);
     start += 2;
     std::string content = mess.substr(start, mess.size() - start);
-    // int i = std::count(content.c_str(), content.c_str() + len, '=');
     int j = std::count(content.c_str(), content.c_str() + len, '&');
-std::cout << "PING2 " << content << std::endl;
-    // if (i % 2 != 0)
-// means that one of the value has no key
-        // return this->set_error(400);
+    // TO DO check if a key has no value, if so error?
     int k = -1;
     while (k < j){
         std::string key = content.substr(0, content.find("="));
-        std::cout << "PING3 key" << key << std::endl;
         std::size_t stop = content.find_first_of(" \n&\r");
         if (stop == content.npos){
             std::string value = content.substr(key.size() + 1, content.size() - (key.size() + 1));
-            std::cout << "PING4 bis value" << value << std::endl;
             if (key == "cat")
                 cat.push_back(value);
             this->response.append("200 OK");
-            std::vector<std::string>::iterator test = cat.begin();
-                while (test != cat.end()){
-                    std::cout << *test << std::endl;
-                    test++;
-                }
 // TO DO create struct or class to return with elts from list
             return ;
         }
         std::string value = content.substr(key.size() + 1, stop - (key.size() + 1));
-        std::cout << "PING4 value" << value << std::endl;
         if (key == "cat")
             cat.push_back(value);
-        std::cout << "PING5 size" << content.size() << "stop at " << stop << std::endl;
         content = content.substr(stop + 1, content.size() - (stop + 1));
         k++;
     }
@@ -264,17 +193,8 @@ void Request::handle_post(char *msg, int fd, std::vector<std::string> cat){
     else if (content_type == "application/x-www-form-urlencoded")
         return extract_data_post(mess, cat);
     else
-    // if (content_type != "application/x-www-form-urlencoded" && content_type != "multipart/form-data" && content_type != "text/plain")
         return this->get_file_post(mess);
-// Content-Disposition: form-data; name="files[]"; filename="chat_bulle.jpeg"\r
-    // std::string file_name = mess.substr()
 }
-// POST / HTTP/1.1
-// [[ Less interesting headers ... ]]
-// Content-Type: application/x-www-form-urlencoded
-// Content-Length: 51
-
-// text1=text+default&text2=a%CF%89b&file1=a.txt&file2=a.html&file3=binary
 
 void Request::handle_get(char *msg, int fd, std::vector<std::string> cat){
     this->fd = fd;
@@ -350,4 +270,49 @@ std::string Request::get_content_type(std::string file){
     }
     else
         return "image/" + ext;
+}
+
+void Request::set_error(int err){
+    this->error_code = err;
+    this->success = false;
+    if (err == 400){
+// for now for missing extension in file
+        this->error_msg = "Bad Request";
+        this->response.append("400 ");
+        this->response.append(this->error_msg);
+        this->response.append(" Content-Type: text/html Context-Lenght: 101\n\n");
+        this->response.append("<html><body>400 BAD REQUEST<img src=\"error/400.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+    }
+    else if (err == 404){
+// for now, couldn't open file so does not exist
+        this->error_msg = "Not Found";
+        this->response.append("404 ");
+        this->response.append(this->error_msg);
+        this->response.append(" Content-Type: text/html Context-Lenght: 91\n\n");
+        this->response.append("<html><body>404 NOT FOUND<img src=\"error/404.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+    }
+    else if (err == 405){
+// is not GET POST or DELETE
+        this->error_msg = "Method Not Allowed";
+        this->response.append("405 ");
+        this->response.append(this->error_msg);
+        this->response.append(" Content-Type: text/html Context-Lenght: 109\n\n");
+        this->response.append("<html><body>405 METHOD NOT ALLOWED <img src=\"error/405.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+    }
+    else if (err == 411){
+// content lenght missing
+        this->error_msg = "Length Required";
+        this->response.append("411 ");
+        this->response.append(this->error_msg);
+        this->response.append(" Content-Type: text/html Context-Lenght: 109\n\n");
+        this->response.append("<html><body>411 LENGHT REQUIRED <img src=\"error/411.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+    }
+    else if (err == 500){
+// For now, couldn't delete file
+        this->error_msg = "Internal Server Error";
+        this->response.append("500 ");
+        this->response.append(this->error_msg);
+        this->response.append(" Content-Type: text/html Context-Lenght: 112\n\n");
+        this->response.append("<html><body>500 INTERNAL SERVER ERROR <img src=\"error/500.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+    }
 }
