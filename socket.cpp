@@ -17,14 +17,15 @@ const char *Socket::failed_socket::what() const throw(){
 /////////////////////////////////////////////
 
 // Socket::Socket(int domain, int service, int protocol, int port, u_long interface, bool server){
-Socket::Socket(bool server){
-    this->is_server = server;
+Socket::Socket(){
+    this->is_server = true;
 }
-char *Socket::create_socket(int port, in_addr_t interface){
+char *Socket::create_socket(int port, char * interface){
+    in_addr_t inter = inet_addr(interface);
 // preparation pour l'assignation de la,socket a un port(bind)
-    this->address.sin_family = AF_INET; //(AF_INET?)
-    this->address.sin_port = htons(port); // A CHECK BONNE CONV
-    this->address.sin_addr.s_addr = htonl(interface);
+    this->address.sin_family = AF_INET; //(protocol ipv4)
+    this->address.sin_port = htons(port); // TO DO CHECK BONNE CONV
+    this->address.sin_addr.s_addr = htonl(inter);
     this->fd_sock = socket(AF_INET, SOCK_STREAM, 0);
 // DOMAIN: communication domain in which the socket should be created.(ipv4, ipv6)
 // SERVICE: type of service. This is selected according to the properties required by the application: SOCK_STREAM (virtual circuit service)

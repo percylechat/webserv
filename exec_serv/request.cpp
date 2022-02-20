@@ -315,4 +315,12 @@ void Request::set_error(int err){
         this->response.append(" Content-Type: text/html Context-Lenght: 112\n\n");
         this->response.append("<html><body>500 INTERNAL SERVER ERROR <img src=\"error/500.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
     }
+    else if (err == 505){
+// bad hhtp protocol version
+        this->error_msg = "HTTP Version not supported";
+        this->response.append("505 ");
+        this->response.append(this->error_msg);
+        this->response.append(" Content-Type: text/html Context-Lenght: 57\n\n");
+        this->response.append("<html><body>500 HTTP VERSION NOT SUPPORTED</body></html>");
+    }
 }
