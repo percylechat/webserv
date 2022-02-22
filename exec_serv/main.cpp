@@ -8,10 +8,13 @@
 #include <cstring>
 
 #include <fcntl.h>
-#include "../parsing_conf.hpp"
-#include "request.hpp"
+// #include "../parsing_conf.hpp"
+// #include "request.hpp"
+#include "cgi.hpp"
 
 #define MAX_EVENTS 5
+
+// clang++ -Wall -Wextra -Werror -fsanitize=address -std=c++98 main.cpp ../parsing_conf.cpp cgi.cpp request.cpp ../socket.cpp 
 
 // GET /index.html HTTP/1.1
 // Host: localhost:8080
@@ -26,35 +29,9 @@
 // Sec-Fetch-Site: cross-site
 // Cache-Control: max-age=0
 
-struct location{
-    std::string root;
-    std::string index;
-// no need
-    std::vector<std::string> methods;
-    bool autoindex;
-    std::string cgi;
-    std::string upload_dir;
-    std::string redirect;
-};
-struct server{
-    int port;
-    std::string name;
-    std::string error_page;
-    int size;
-    struct location *l;
-};
-struct bundle_for_response{
-    int fd_listen;
-    int fd_accept;
-    int fd_read;
-    int fd_write;
-    request re;
-    int specs;
-};
-
-std::string go_error(int err, serverConf conf){
+std::string go_error(int err, serverConf conf, struct bundle_for_response bfr){
     std::string response = "HTTP/1.1 ";
-    if (s.error_page != "")
+    if (conf.http.data()[bfr.specs]["server"]["error_page"][0] != "")
         //DO smthing
         // si error page presente
         // 404 NOT FOUND -> code d'erreur et explication
@@ -81,9 +58,11 @@ std::string go_error(int err, serverConf conf){
 std::string get_response(struct bundle_for_response bfr, serverConf conf){
     bfr.re.status_is_handled = true;
     if (bfr.re.error_type != 200)
-        return go_error(bfr.re.error_type, conf);
-    // TO DO need check which location
+        return go_error(bfr.re.error_type, conf, bfr);
+// TO DO need check which location
     // check_methods(&r, s);
+    if (bfr.re.is_cgi == true)
+        return handle_cgi(bfr, conf);
     else{
         std::string response = "HTTP/1.1 200 OK \r\n hello";
         return response.c_str();
@@ -92,21 +71,10 @@ std::string get_response(struct bundle_for_response bfr, serverConf conf){
 
 int check_conn(int fd_1, Socket *serv, int nbr){
     int i = 0;
-                std::cout << "hello" << std::endl;
     while (i < nbr){
         if (fd_1 == serv[i].get_fd())
             return i;
         i++;
-    }
-    return -1;
-}
-
-int get_fd_serv(int fd_1, std::vector<struct bundle_for_response> bfr){
-    unsigned int k = 0;
-    while (k < bfr.size()){
-        if (fd_1 == bfr[k].fd)
-            return k;
-        k++;
     }
     return -1;
 }
@@ -130,70 +98,62 @@ int fd_in_queue(int fd, int queue, int mode){
     return 0;
 }
 
-void _handleReady(int epoll_fd, const int fd, struct epoll_event *event, Socket *serv, serverConf conf, std::vector<struct bundle_for_response> bfr)
+void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket *serv, serverConf conf, std::vector<struct bundle_for_response> bfr)
 {
     int j = check_conn(fd, serv, conf.http.size());
     Socket sock[1];
     sock[0].fd_sock = fd;
-
-        if (j != -1)
+    if (j != -1)
+    {
+        unsigned int i = 0;
+        while (i != bfr.size() && bfr[i].fd_listen != fd)
+            i++;
+        int clientsocket = sock[0].server_accept();
+        Socket test[1];
+        test[0].fd_sock = clientsocket;
+        if (fcntl(test[0].fd_sock, F_SETFL, O_NONBLOCK) < 0)
+            return;
+        if (fd_in_queue(test[0].fd_sock, epoll_fd, 2))
+            return;
+        bfr[i].fd_accept = test[0].fd_sock;
+    }
+    else if (event->events & EPOLLRDHUP){
+        close(sock[0].fd_sock);
+// TO DO remove attached request
+        std::cout << "is stop" << std::endl;
+    }
+    else if (event->events & EPOLLOUT){
+        unsigned int i = 0;
+        while (i != bfr.size() && bfr[i].fd_read != fd)
+            i++;
+        int ret;
+        std::string content = get_response(bfr[i], conf);
+        ret = send(sock[0].fd_sock, content.c_str(), content.size(), 0);
+        if (ret == 0 || ret == -1)
+            return ;
+        std::cout << "success" << std::endl;
+    }
+    else if (event->events & EPOLLIN){
+        unsigned int i = 0;
+        while (i != bfr.size() && bfr[i].fd_accept != fd)
+            i++;
+        int ret = 0;
+        char buffer[300];
+        bzero(buffer, sizeof(buffer));
+        ret = recv(sock[0].fd_sock, buffer, sizeof(buffer), MSG_DONTWAIT);
+        if (ret == 0)
+            return ;
+        else if (ret == -1)
+// TO DO client exit or empty request
+            return ;
+        bfr[i].re = first_dispatch(buffer);
+        if (bfr[i].re.status_is_finished == true)
         {
-            unsigned int i = 0;
-            while (i != bfr.size() && bfr[i].fd_listen != fd)
-                i++;
-            int clientsocket = sock[0].server_accept();
-            Socket test[1];
-            test[0].fd_sock = clientsocket;
-            if (fcntl(test[0].fd_sock, F_SETFL, O_NONBLOCK) < 0)
-                return;
-            if (fd_in_queue(test[0].fd_sock, epoll_fd, 2))
-                return;
-            bfr[i].fd_accept = test[0].fd_sock;
-            // _add_fd_to_poll(epoll_fd, accepted, EPOLLIN | EPOLLRDHUP);
-            // _requests[accepted] = std::make_pair(http::Request(), found->second);
+            event->events = EPOLLOUT;
+            epoll_ctl(epoll_fd, EPOLL_CTL_MOD, sock[0].fd_sock, event);
+            bfr[i].fd_read = sock[0].fd_sock;
         }
-        else if (event->events & EPOLLRDHUP){
-            // _removeAcceptedFD(sock);
-            close(sock[0].fd_sock);
-            // TO DO remove attached request
-            std::cout << "is stop" << std::endl;
-        }
-        else if (event->events & EPOLLOUT){
-            unsigned int i = 0;
-            while (i != bfr.size() && bfr[i].fd_read != fd)
-                i++;
-            int ret;
-    // std::cout << "--RESPONSE--\n" << content.c_str() << std::endl;
-            std::string content = get_response(bfr[i], conf);
-            ret = send(sock[0].fd_sock, content.c_str(), content.size(), 0);
-            if (ret == 0 || ret == -1)
-                return ;
-            std::cout << "success" << std::endl;
-        }
-            // _handleEpollout(sock, _requests[fd], event, epoll_fd);
-        else if (event->events & EPOLLIN){
-            unsigned int i = 0;
-            while (i != bfr.size() && bfr[i].fd_accept != fd)
-                i++;
-            int ret = 0;
-            char buffer[300];
-            bzero(buffer, sizeof(buffer));
-            ret = recv(sock[0].fd_sock, buffer, sizeof(buffer), MSG_DONTWAIT);
-            if (ret == 0)
-                return ;
-            else if (ret == -1)
-                // CLIENT REMOVED IN THIS CASE
-                return ;
-            bfr[i].re = first_dispatch(buffer);
-            // data.first.parse(content, data.second.client_max_body_size);
-            if (bfr[i].re.status_is_finished == true)
-            {
-                // std::cout << data.first << std::endl;
-                event->events = EPOLLOUT;
-                epoll_ctl(epoll_fd, EPOLL_CTL_MOD, sock[0].fd_sock, event);
-                bfr[i].fd_read = sock[0].fd_sock;
-            }
-        }
+    }
 }
 
 int launch(serverConf conf){
@@ -202,20 +162,20 @@ int launch(serverConf conf){
     struct epoll_event events[MAX_EVENTS];
     unsigned int event_count;
     const char *check = NULL;
-    // char buffer[300000] = {0}; // TO DO check buffer size for reading
     std::vector<struct bundle_for_response> bfr;
 
     std::string home = "127.0.0.1";
-    // TO DO check error handling while creating queue
+// TO DO check error handling while creating queue
     int queue = epoll_create1(EPOLL_CLOEXEC);
     if (queue == -1){
         std::cout << "wtf epoll1" << std::endl;
         return 1;
     }
-    int i = 0;
+    std::size_t i = 0;
     Socket serv[conf.http.size()];
     while (i < conf.http.size()){
-        check = serv[i].create_socket(conf.http.data()[i]["server"]["listen"][0], INADDR_ANY);
+        int port = atoi(conf.http.data()[i]["server"]["listen"][0].c_str());
+        check = serv[i].create_socket(port, INADDR_ANY);
         if (check != NULL){
             std::cout << check << std::endl;
             return 1;
@@ -229,10 +189,10 @@ int launch(serverConf conf){
             std::cout << "Error setting nonblocking socket" << std::endl;
             return 1;
         }
-        // TO DO CLAIRE test nginx si client max body size obligatoire et que ce passe t il si 0 ou -1
+// TO DO CLAIRE test nginx si client max body size obligatoire et que ce passe t il si 0 ou -1
         // if (s_list[i].size < 0) // if no client size, put -1 and we go default. Else if put at 0 what happen?
         //     s_list[i].size = 10;
-        // TO DO why listen 3 connexions
+// TO DO why listen 3 connexions
         check = serv[i].server_listening(3);
         if (check != NULL){ // TO DO can't listen because full ? Maybe send proper error to bounce
             std::cout << check << std::endl;
@@ -256,61 +216,12 @@ int launch(serverConf conf){
         event_count = epoll_wait(queue, events, MAX_EVENTS, -1);
         i = 0;
         while (i < event_count){
-            _handleReady(queue, events[i].data.fd, &events[i], serv, conf, bfr);
-            // else if (events[i].data.fd && EPOLLRDHUP){//socket was closed client side
-            //     int j = get_fd_serv(events[i].data.fd, bfr);
-            //     close(bfr[j].fd);
-            // }
-            // else { //writing time
-            // std::cout << "bute" << std::endl;
-            //     unsigned int k = 0;
-            //     while (k < bfr.size() && events[i].data.fd != bfr[k].fd)
-            //         k++;
-            //     if (bfr[k].re.status_is_finished == true){
-            //         std::cout << "bote" << std::endl;
-            //         const char *response = get_response(bfr[k].re, s_list[bfr[k].num_serv]);
-            //         write(events[i].data.fd, response, strlen(response));
-            //     }
-            // }
-            // std::cout << "tour " << i << std::endl;
+            poll_handling(queue, events[i].data.fd, &events[i], serv, conf, bfr);
             i++;
         }
         i = 0;
-    std::cout << "ping" << std::endl;
     }
-    //     int new_sock = serv.server_accept();
-    //     if (new_sock == -1){
-    //         std::cout << "Error: failure to accept in server_socket" << std::endl;
-    //         return 1;
-    //     }
-
-    //     // crea du systeme de gestion de requetes
-        
-        
-    //     event.data.fd = new_sock;
-        
-        
-    //     std::cout << "events: " << event_count << std::endl;
-    //     for(int i = 0; i < event_count; i++)
-    //     {
-    //         std::cout << "Reading file descriptor" << events[i].data.fd << std::endl;
-    //         long valread = read(events[i].data.fd, buffer, 30000);
-    //         if (valread == -1)
-    //             return 0;
-    //         // gestion requete
-    //         std::string response = first_dispatch(buffer, events[i].data.fd, cat);
-    //     response.append("done");
-    //         write(events[i].data.fd , response.c_str(), response.size());
-    //         std::cout << "percy" << std::endl;
-    //         std::vector<std::string>::iterator test = cat.begin();
-    //         while (test != cat.end()){
-    //             std::cout << *test << std::endl;
-    //             test++;
-    //         }
-    //     }
-        close(queue);
-    //     close(new_sock);
-    // }
+    close(queue);
     return 0;
 }
 
@@ -319,21 +230,6 @@ int main(int argc, char *argv[]){
         std::cout << "ERROR, conf file missing" << std::endl;
     }
     serverConf conf = start_conf(argv[1]);
-    // struct server s[1];
-    // s->port = 8000;
-    // s->name = "John";
-    // s->size = 10;
-    // s->error_page = "";
-    // struct location l[1];
-    // l->root = "\\";
-    // l->index = "index.html";
-    // l->autoindex = true;
-    // l->cgi = "";
-    // l->upload_dir = "";
-    // l->redirect = "";
-    // s->l = l;
-    // std::vector<struct server> s_list;
-    // s_list.push_back(*s);
-        return launch(conf);
-    return 0;
+    // std::cout << "hello" << std::endl;
+    return launch(conf);
 }

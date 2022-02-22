@@ -1,3 +1,5 @@
+clang++ -Wall -Wextra -Werror -fsanitize=address -std=c++98 main.cpp ../parsing_conf.cpp cgi.cpp request.cpp ../socket.cpp 
+
 http.cat
 
 https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages

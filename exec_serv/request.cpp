@@ -19,9 +19,20 @@ std::string get_body(std::string mess){
     return mess.substr(start, mess.size() - start);
 }
 
+bool get_content_type(std::string file){
+    int i = file.find_last_of(".");
+    if (i == -1)
+        return false;
+    std::string ext = file.substr(i + 1);
+    if (ext == "cgi")
+        return true;
+    return false;
+}
+
 request fill_request_basic(char *msg, int n){
     struct request r;
     int i;
+    int j;
     if (n == 1){
         r.type = "GET";
         i = 4;
@@ -34,12 +45,14 @@ request fill_request_basic(char *msg, int n){
         r.type = "DELETE";
         i = 7;
     }
-    while (msg[i] != ' ')
-        i++;
-    std::string mess = &msg[4];
-    r.page = mess.substr(0, i - 4);
-    i++;
-    int j = i;
+    j = i;
+    while (msg[j] != ' ')
+        j++;
+    std::string mess = &msg[i];
+    r.page = mess.substr(0, j - i);
+    r.is_cgi = get_content_type(r.page);
+    j += 2;
+    i = j;
     while (msg[i] != ' ' && msg[i] != '\n' && msg[i] != '\r')
         i++;
     std::string http = mess.substr(j, i - j);

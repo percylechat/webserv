@@ -1,5 +1,5 @@
 #include <iostream>
-
+#include <cstdlib>
 struct request{
     std::string type;// get delete post
     std::string host_ip; // port 8000 5000
@@ -12,6 +12,16 @@ struct request{
     std::string encoding; // indique type de encodage (POST)
     long content_size; // taille du message
     std::string body; // message
+    bool is_cgi;
+};
+
+struct bundle_for_response{
+    int fd_listen;
+    int fd_accept;
+    int fd_read;
+    int fd_write;
+    request re;
+    int specs;
 };
 
 long get_content_size(std::string mess);
