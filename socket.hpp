@@ -9,7 +9,8 @@
 #include <errno.h>  //debug, get errno value
 
 class Socket{
-    protected:
+    // protected:
+    public:
         struct sockaddr_in address;
 // struct sockaddr_in {
 //  short   sin_family;       /* la famille de protocole */
@@ -28,9 +29,9 @@ class Socket{
         Socket();
 // server funct: first the socket is binded to a specifi address, then it is set to listen.
 // when a connexion occurs, server_accept creates a new socket modelling the original and handles it.
-        char *create_socket(int port, char *interface);
-        char *server_binding();
-        char *server_listening(int backlog);
+        const char *create_socket(int port, in_addr_t inter);
+        const char *server_binding();
+        const char *server_listening(int backlog);
         int server_accept();
 /////////////////////////////////////////////
 //CLIENT SOCKET

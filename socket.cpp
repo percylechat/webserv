@@ -20,8 +20,8 @@ const char *Socket::failed_socket::what() const throw(){
 Socket::Socket(){
     this->is_server = true;
 }
-char *Socket::create_socket(int port, char * interface){
-    in_addr_t inter = inet_addr(interface);
+const char *Socket::create_socket(int port, in_addr_t inter){
+    // in_addr_t inter = inet_addr(interface);
 // preparation pour l'assignation de la,socket a un port(bind)
     this->address.sin_family = AF_INET; //(protocol ipv4)
     this->address.sin_port = htons(port); // TO DO CHECK BONNE CONV
@@ -35,7 +35,7 @@ char *Socket::create_socket(int port, char * interface){
         return "Error: failure to create server socket";
     return NULL;
 }
-char *Socket::server_binding(){
+const char *Socket::server_binding(){
 //this part linked to memset that we try not to do?
     if (sizeof(this->address) < 0)
         return "Error: failure to bind server_socket";
@@ -44,7 +44,7 @@ char *Socket::server_binding(){
         return "Error: failure to bind server_socket";
     return NULL;
 }
-char *Socket::server_listening(int backlog){
+const char *Socket::server_listening(int backlog){
     int res = listen(this->fd_sock, backlog);
     if (res != 0)
         return "Error: failure to listen from server_socket";
