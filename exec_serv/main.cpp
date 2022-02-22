@@ -25,6 +25,7 @@
 // Sec-Fetch-Mode: navigate
 // Sec-Fetch-Site: cross-site
 // Cache-Control: max-age=0
+
 struct location{
     std::string root;
     std::string index;
@@ -43,15 +44,22 @@ struct server{
     struct location *l;
 };
 struct bundle_for_response{
-    int fd;
-    int num_serv;
+    int fd_listen;
+    int fd_accept;
+    int fd_read;
+    int fd_write;
     request re;
+    int specs;
 };
 
-const char *go_error(int err, server s){
+std::string go_error(int err, serverConf conf){
     std::string response = "HTTP/1.1 ";
     if (s.error_page != "")
         //DO smthing
+        // si error page presente
+        // 404 NOT FOUND -> code d'erreur et explication
+        // Content-Type: text/html Context-Lenght: 109\r\n\r\n -> type de page et taille fichier
+        // ->fichier
         ;
     else{
         if (err == 400)// for now for missing extension in file
@@ -67,13 +75,13 @@ const char *go_error(int err, server s){
         else if (err == 505)// bad hhtp protocol version
             response.append("505 HTTP VERSION NOT SUPPORTED");
     }
-    return response.c_str();
+    return response;
 }
 
-const char *get_response(request r, server s){
-    r.status_is_handled = true;
-    if (r.error_type != 200)
-        return go_error(r.error_type, s);
+std::string get_response(struct bundle_for_response bfr, serverConf conf){
+    bfr.re.status_is_handled = true;
+    if (bfr.re.error_type != 200)
+        return go_error(bfr.re.error_type, conf);
     // TO DO need check which location
     // check_methods(&r, s);
     else{
@@ -122,14 +130,17 @@ int fd_in_queue(int fd, int queue, int mode){
     return 0;
 }
 
-void _handleReady(int epoll_fd, const int fd, struct epoll_event *event, Socket *serv, int nbr_sockets)
+void _handleReady(int epoll_fd, const int fd, struct epoll_event *event, Socket *serv, serverConf conf, std::vector<struct bundle_for_response> bfr)
 {
-    int j = check_conn(fd, serv, nbr_sockets);
+    int j = check_conn(fd, serv, conf.http.size());
     Socket sock[1];
     sock[0].fd_sock = fd;
 
         if (j != -1)
         {
+            unsigned int i = 0;
+            while (i != bfr.size() && bfr[i].fd_listen != fd)
+                i++;
             int clientsocket = sock[0].server_accept();
             Socket test[1];
             test[0].fd_sock = clientsocket;
@@ -137,16 +148,33 @@ void _handleReady(int epoll_fd, const int fd, struct epoll_event *event, Socket 
                 return;
             if (fd_in_queue(test[0].fd_sock, epoll_fd, 2))
                 return;
+            bfr[i].fd_accept = test[0].fd_sock;
             // _add_fd_to_poll(epoll_fd, accepted, EPOLLIN | EPOLLRDHUP);
             // _requests[accepted] = std::make_pair(http::Request(), found->second);
         }
-        else if (event->events & EPOLLRDHUP)
+        else if (event->events & EPOLLRDHUP){
             // _removeAcceptedFD(sock);
+            close(sock[0].fd_sock);
+            // TO DO remove attached request
             std::cout << "is stop" << std::endl;
-        else if (event->events & EPOLLOUT)
-            // _handleEpollout(sock, _requests[fd], event, epoll_fd);
+        }
+        else if (event->events & EPOLLOUT){
+            unsigned int i = 0;
+            while (i != bfr.size() && bfr[i].fd_read != fd)
+                i++;
+            int ret;
+    // std::cout << "--RESPONSE--\n" << content.c_str() << std::endl;
+            std::string content = get_response(bfr[i], conf);
+            ret = send(sock[0].fd_sock, content.c_str(), content.size(), 0);
+            if (ret == 0 || ret == -1)
+                return ;
             std::cout << "success" << std::endl;
+        }
+            // _handleEpollout(sock, _requests[fd], event, epoll_fd);
         else if (event->events & EPOLLIN){
+            unsigned int i = 0;
+            while (i != bfr.size() && bfr[i].fd_accept != fd)
+                i++;
             int ret = 0;
             char buffer[300];
             bzero(buffer, sizeof(buffer));
@@ -156,13 +184,14 @@ void _handleReady(int epoll_fd, const int fd, struct epoll_event *event, Socket 
             else if (ret == -1)
                 // CLIENT REMOVED IN THIS CASE
                 return ;
-            request re = first_dispatch(buffer);
+            bfr[i].re = first_dispatch(buffer);
             // data.first.parse(content, data.second.client_max_body_size);
-            if (re.status_is_finished == true)
+            if (bfr[i].re.status_is_finished == true)
             {
                 // std::cout << data.first << std::endl;
                 event->events = EPOLLOUT;
                 epoll_ctl(epoll_fd, EPOLL_CTL_MOD, sock[0].fd_sock, event);
+                bfr[i].fd_read = sock[0].fd_sock;
             }
         }
 }
@@ -184,9 +213,8 @@ int launch(serverConf conf){
         return 1;
     }
     int i = 0;
-    int nbr_sockets = conf.http.size();
-    Socket serv[nbr_sockets];
-    while (i < nbr_sockets){
+    Socket serv[conf.http.size()];
+    while (i < conf.http.size()){
         check = serv[i].create_socket(conf.http.data()[i]["server"]["listen"][0], INADDR_ANY);
         if (check != NULL){
             std::cout << check << std::endl;
@@ -218,14 +246,17 @@ int launch(serverConf conf){
             std::cout << "Failed to add file descriptor to epoll\n" << std::endl;
             return -1;
         }
+        struct bundle_for_response one;
+        one.fd_listen = serv[i].get_fd();
+        one.specs = i;
+        bfr.push_back(one);
         i++;
     }
-
     while (1){
         event_count = epoll_wait(queue, events, MAX_EVENTS, -1);
         i = 0;
         while (i < event_count){
-            _handleReady(queue, events[i].data.fd, &events[i], serv, nbr_sockets);
+            _handleReady(queue, events[i].data.fd, &events[i], serv, conf, bfr);
             // else if (events[i].data.fd && EPOLLRDHUP){//socket was closed client side
             //     int j = get_fd_serv(events[i].data.fd, bfr);
             //     close(bfr[j].fd);
