@@ -130,6 +130,26 @@ int serverConf::findRelevantId(std::string content, std::vector< std::string > i
     return TRUE;
 }
 
+int serverConf::validSeparator(std::vector< std::string > ids, std::string content, size_t pos, size_t idx)
+{
+    size_t prevIdIndex = 0;
+    size_t index = 0;
+    bool found = 0;
+    while (index < ids.size())
+    {
+        if (content.find(ids[index], pos) != std::string::npos && isspace(content.at(content.find(ids[index], pos) + ids[index].length())))
+        {
+            if (content.find(ids[index], pos) < prevIdIndex || prevIdIndex == 0)
+                prevIdIndex = content.find(ids[index], pos);
+            found = 1;
+        }
+        index++;
+    }
+    if (idx > prevIdIndex && found)
+        return FALSE;
+    return TRUE;
+}
+
 int serverConf::isValidLocation(std::string content, std::string locationName)
 {
     size_t pos = 0;
@@ -151,16 +171,29 @@ int serverConf::isValidLocation(std::string content, std::string locationName)
             i++;
         if (pos + i == content.length())
             return TRUE;
-        else if (content.find(";", pos) != std::string::npos)
+        else if (content.find(";", pos) != std::string::npos && content.find(";", pos) != pos && (isspace(content.at(content.find(";", pos) + 1)) || content.at(content.find(";", pos) + 1) == '}'))
+        {
             idx = content.find(";", pos);
+            if (validSeparator(_locationIds, content, pos + key.length(), idx) == FALSE)
+                return FALSE;
+        }
         else
             return FALSE;
         i = 0;
-        std::vector< std::string > value;
         std::string rawContent = content.substr(pos + key.length(), idx - (pos + key.length()));
+        while (i < rawContent.length() && isspace(rawContent.at(i)))
+            i++;
+        if (!rawContent[i])
+            return FALSE;
+        i = 0;
         std::string trimContent = rawContent.substr(rawContent.find_first_not_of("\t\n\r\v\f "), rawContent.length() - rawContent.find_first_not_of("\t\n\r\v\f "));
-        value.push_back(trimContent);
         pos = idx + 1;
+        if (key == "autoindex" && trimContent == "on")  
+            trimContent = "1";
+        else if (key == "autoindex" && trimContent == "off")  
+            trimContent = "0";
+        else if (key == "autoindex")
+            return FALSE;
         http.data()[http.size() - 1][category][key].push_back(trimContent);
     }
     return TRUE;
@@ -201,7 +234,7 @@ int serverConf::isValidServer(std::string content)
     while (pos != content.length())
     {
         isLocation = 0;
-        if (findRelevantId(content, _ServerIds, &key, pos) == FALSE)
+        if (findRelevantId(content, _serverIds, &key, pos) == FALSE)
             return FALSE;
         if (key == "location")
         {
@@ -220,12 +253,21 @@ int serverConf::isValidServer(std::string content)
                 i++;
             if (pos + i == content.length())
                 return TRUE;
-            else if (content.find(";", pos) != std::string::npos)
+            else if (content.find(";", pos) != std::string::npos && content.find(";", pos) != pos && (isspace(content.at(content.find(";", pos) + 1)) || content.at(content.find(";", pos) + 1) == '}'))
+            {
                 idx = content.find(";", pos);
+                if (validSeparator(_serverIds, content, pos + key.length(), idx) == FALSE)
+                    return FALSE;
+            }
             else
                 return FALSE;
             i = 0;
             std::string rawContent = content.substr(pos + key.length(), idx - (pos + key.length()));
+            while (i < rawContent.length() && isspace(rawContent.at(i)))
+                i++;
+            if (!rawContent[i])
+                return FALSE;
+            i = 0;
             std::string trimContent = rawContent.substr(rawContent.find_first_not_of("\t\n\r\v\f "), rawContent.length() - rawContent.find_first_not_of("\t\n\r\v\f "));
             pos = idx + 1;
             http.data()[http.size() - 1][category][key].push_back(trimContent);
@@ -245,7 +287,7 @@ int serverConf::setServerId()
     return TRUE;
 }
 
-std::string serverConf::getBlockServer(std::string content)
+std::string serverConf::getBlock(std::string content)
 {
     size_t i = 0;
     size_t count1 = 0;
@@ -277,7 +319,7 @@ std::string serverConf::getBlockLocation(std::string content)
     return content.substr(0, i);
 }
 
-int serverConf::parseContent(std::string content)
+int serverConf::brackets(std::string content)
 {
     size_t posStart = 0;
     size_t posEnd = content.length();
@@ -295,15 +337,112 @@ int serverConf::parseContent(std::string content)
         posStart++;
         posEnd--;
     }
-    size_t server_idx = 0;
-    std::string blockServer = "";
-    while (server_idx != content.length())
+    return TRUE;
+}
+
+int serverConf::checkBlock(std::string content, bool isHttp)
+{
+    size_t pos = 0;
+
+    while (pos < content.length())
     {
-        if ((server_idx = content.find("server", server_idx)) != std::string::npos)
+        if (isHttp)
         {
-            if (content.find("{", server_idx + 7) != std::string::npos)
-                blockServer = getBlockServer(&content[content.find("{", server_idx + 7) + 1]);
-            server_idx = content.find("{", server_idx + 7) + blockServer.length();
+            while (pos < content.length() && isspace(content.at(pos)))
+                pos++;
+            if (!content.compare(pos, std::string("server").length(), "server"))
+            {
+                pos += std::string("server").length();
+                while (pos < content.length() && isspace(content.at(pos)))
+                    pos++;
+                if (content.at(pos) != '{')
+                    return FALSE;
+                if (content.rfind("}", content.length()) == std::string::npos)
+                    return FALSE;
+                else
+                    pos = content.rfind("}", content.length()) + 1;
+            }
+        }
+        while (pos < content.length() && isspace(content.at(pos)))
+            pos++;
+        if (pos == content.length())
+            return TRUE;
+        else if (content.find(";", pos) != std::string::npos && content.find(";", pos) != pos)
+            pos = content.find(";", pos) + 1;
+        else
+            return FALSE;
+    }
+    return TRUE;
+}
+
+int serverConf::topLevelDirectives(std::string content)
+{
+    size_t pos = 0;
+    size_t i = 0;
+    size_t count[4] = {0, 0, 0, 0};
+    std::string block = "";
+    size_t knownDirective = 0;
+
+    while (pos < content.length())
+    {
+        while (pos < content.length() && isspace(content.at(pos)))
+            pos++;
+        i = 0;
+        while (i < _directives.size())
+        {
+            if (!content.compare(pos, _directives[i].length(), _directives[i]))
+            {
+                count[i]++;
+                knownDirective++;
+                pos += _directives[i].length();
+                break ;
+            }
+            i++;
+        }
+        if (content.find("{", pos) != std::string::npos && knownDirective)
+        {
+            block = getBlock(&content[content.find("{", pos) + 1]);
+            if (checkBlock(block, (i == 1)) == FALSE)
+                return FALSE;
+            pos = block.length() + content.find("{", pos) + 1;
+            if (content.find("}", pos) != std::string::npos)
+                pos = content.find("}", pos) + 1;
+            else
+                return FALSE;
+        }
+        else
+            return FALSE;
+    }
+    i = 0;
+    while (i < 4)
+    {
+        if (count[i] > 1)
+            return FALSE;
+        if (i == 1 && count[i] == 0)
+            return FALSE;
+        i++;
+    }
+    return TRUE;
+}
+
+int serverConf::parseContent(std::string content)
+{
+    if (brackets(content) == FALSE)
+        return FALSE;
+    if (topLevelDirectives(content) == FALSE)
+        return FALSE;
+    size_t pos = 0;
+    std::string blockServer = "";
+    while (pos != content.length())
+    {
+        if ((pos = content.find("server", pos)) != std::string::npos)
+        {
+            pos += std::string("server").length();
+            if (content.find("{", pos) != std::string::npos)
+                blockServer = getBlock(&content[content.find("{", pos) + 1]);
+            else
+                return FALSE;
+            pos = content.find("{", pos) + blockServer.length();
             setServerId();
             if (isValidServer(blockServer) == FALSE)
                 return FALSE;
@@ -342,7 +481,7 @@ void serverConf::printMap()
         i++;
     }
 }
-
+/*
 int serverConf::getData()
 {
     std::cout << "Pour chaque serveur, récupérer son port (crea socket) " << std::endl;
@@ -432,7 +571,6 @@ int serverConf::getData()
         }
         else
         {
-            j = 0;
             std::cout << "nom de la location : " << it->first << std::endl;
             while (j < http.data()[i][it->first]["index"].size())
             {
@@ -440,6 +578,7 @@ int serverConf::getData()
                 j++;
             }
         }
+        j = 0;
     }
     //pour un serveur et une location, recuperer autoindex
     //pour un serveur et une location, recuperer l'upload dir
@@ -447,7 +586,7 @@ int serverConf::getData()
     //pour un serveur et une location, recuperer redirect
     // -> pareil
     return 0;
-}
+}*/
 
 int serverConf::checkMissing()
 {
@@ -458,12 +597,21 @@ int serverConf::checkMissing()
         return FALSE;
     while (i < http.size())
     {
-        if (!http.data()[i]["server"]["listen"].size())
+        if (http.data()[i]["server"]["listen"].empty())
+        {
+            std::cout << "server " << i << " listen/port missing" << std::endl;
             return FALSE;
-        if (!http.data()[i]["server"]["root"].size())
+        }
+        if (http.data()[i]["server"]["root"].empty())
+        {
+            std::cout << "server " << i << " root missing" << std::endl;
             return FALSE;
+        }
         if (j == http.data()[i].size())
+        {
+            std::cout << "no location in server " << i << std::endl;
             return FALSE;
+        }
         i++;
     }
     return TRUE;
@@ -481,22 +629,22 @@ serverConf start_conf(char *str)
     output += conf.getContent(file);
     noComment = conf.removeComments(output);
     std::cout << noComment << std::endl;
-    if (noComment.empty())
-    {
-        std::cout << "IS VALID - EMPTY FILE 0" << std::endl;
-        return conf;
-    }
-    else
-        std::cout << "IS VALID - EMPTY FILE 1" << std::endl;
-    ret = conf.parseContent(noComment);
-    std::cout << "IS VALID FORMAT " << ret << std::endl;
-    //if (!ret)
-    //    return FALSE;
-    ret = conf.checkMissing();
-    std::cout << "IS VALID - MISSING INFO " << ret << std::endl;
-    //if (!ret)
-    //    return FALSE;
+    //empty file
+    ret = !noComment.empty();
+    std::cout << "is not empty : " << ret << std::endl;
+    //correct format
+    ret = (ret) ? conf.parseContent(noComment) : 0;
+    std::cout << "is correct format : " << ret << std::endl;
+    //missing info
+    ret = (ret) ? conf.checkMissing() : 0;
+    std::cout << "nothing is missing : " << ret << std::endl;
+    //clé valeurs
     conf.printMap();
-    conf.getData();
+    //is valid ?
+    conf._valid = ret;
+    if (conf._valid)
+        std::cout << str << " is valid" << std::endl;
+    else
+        std::cout << str << " is not valid" << std::endl;
     return conf;
 }

@@ -17,21 +17,27 @@
 class serverConf
 {
     public:
-        std::vector< std::string > _ServerIds;
+        bool _valid;
+        std::vector< std::string > _directives;
+        std::vector< std::string > _serverIds;
         std::vector< std::string > _locationIds;
         std::vector< std::map< std::string, std::map< std::string, std::vector< std::string > > > > http;
-        serverConf() : _ServerIds(std::vector< std::string >()), _locationIds(std::vector< std::string >()), http(std::vector< std::map< std::string, std::map< std::string, std::vector< std::string > > > >())
+        serverConf() : _valid(0), _directives(std::vector< std::string >()), _serverIds(std::vector< std::string >()), _locationIds(std::vector< std::string >()), http(std::vector< std::map< std::string, std::map< std::string, std::vector< std::string > > > >())
         {
-            _ServerIds.push_back("listen");
-            _ServerIds.push_back("server_name");
-            _ServerIds.push_back("location");
-            _ServerIds.push_back("error_page");
-            _ServerIds.push_back("client_max_body_size");
-            _ServerIds.push_back("root");
-            _ServerIds.push_back("index");
-            _ServerIds.push_back("return");
-            _ServerIds.push_back("cgi");
-            _ServerIds.push_back("access_log");
+            _directives.push_back("events");
+            _directives.push_back("http");
+            _directives.push_back("mail");
+            _directives.push_back("stream");
+            _serverIds.push_back("listen");
+            _serverIds.push_back("server_name");
+            _serverIds.push_back("location");
+            _serverIds.push_back("error_page");
+            _serverIds.push_back("client_max_body_size");
+            _serverIds.push_back("root");
+            _serverIds.push_back("index");
+            _serverIds.push_back("return");
+            _serverIds.push_back("cgi");
+            _serverIds.push_back("access_log");
             _locationIds.push_back("root");
             _locationIds.push_back("index");
             _locationIds.push_back("methods");
@@ -52,24 +58,28 @@ class serverConf
             _locationIds.push_back("dirList");
             _locationIds.push_back("expires");
         }
-        serverConf(serverConf const & rhs) : _ServerIds(std::vector< std::string >(rhs._ServerIds)), _locationIds(std::vector< std::string >(rhs._locationIds)), http(std::vector< std::map< std::string, std::map< std::string, std::vector< std::string > > > >(rhs.http)) {}
-        serverConf operator=(serverConf & rhs) { _ServerIds = std::vector< std::string >(rhs._ServerIds); _locationIds = std::vector< std::string >(rhs._locationIds); http = std::vector< std::map< std::string, std::map< std::string, std::vector< std::string > > > >(rhs.http); return *this; }
+        serverConf(serverConf const & rhs) : _valid(0), _directives(std::vector< std::string >(rhs._directives)),  _serverIds(std::vector< std::string >(rhs._serverIds)), _locationIds(std::vector< std::string >(rhs._locationIds)), http(std::vector< std::map< std::string, std::map< std::string, std::vector< std::string > > > >(rhs.http)) {}
+        serverConf operator=(serverConf & rhs) { _valid = 0, _directives = std::vector< std::string >(rhs._directives), _serverIds = std::vector< std::string >(rhs._serverIds); _locationIds = std::vector< std::string >(rhs._locationIds); http = std::vector< std::map< std::string, std::map< std::string, std::vector< std::string > > > >(rhs.http); return *this; }
         virtual ~serverConf() {}
         std::string getContent(std::string file);
         std::string removeComments(std::string file);
+        int brackets(std::string content);
+        int topLevelDirectives(std::string content);
+        int validSeparator(std::vector< std::string > ids, std::string content, size_t pos, size_t idx);
         int parseContent(std::string content);
         void pushServerIds(std::map< std::string, std::vector< std::string > > server);
         void pushLocationIds(std::map< std::string, std::vector< std::string > > location);
         int findRelevantId(std::string content, std::vector< std::string > ids, std::string *key, size_t pos);
         int getLocation(std::string content, std::string *key, size_t *pos, bool *isLocation);
-        std::string getBlockServer(std::string content);
+        int checkBlock(std::string content, bool isHttp);
+        std::string getBlock(std::string content);
         std::string getBlockLocation(std::string content);
         int isValidLocation(std::string content, std::string location_name);
         int isValidServer(std::string content);
         int setLocationId(std::string name);
         int setServerId();
         void printMap();
-        int getData();
+        //int getData();
         int checkMissing();
 };
 
