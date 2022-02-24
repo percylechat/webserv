@@ -14,6 +14,8 @@
 
 #define MAX_EVENTS 5
 
+std::vector<Bundle_for_response> bfr;
+
 // clang++ -Wall -Wextra -Werror -fsanitize=address -std=c++98 main.cpp ../parsing_conf.cpp cgi.cpp request.cpp ../socket.cpp 
 
 // GET /index.html HTTP/1.1
@@ -29,7 +31,7 @@
 // Sec-Fetch-Site: cross-site
 // Cache-Control: max-age=0
 
-std::string go_error(int err, serverConf conf, struct bundle_for_response bfr){
+std::string go_error(int err, serverConf conf, Bundle_for_response bfr){
     std::string response = "HTTP/1.1 ";
     if (conf.http.data()[bfr.specs]["server"]["error_page"][0] != "")
         //DO smthing
@@ -55,7 +57,7 @@ std::string go_error(int err, serverConf conf, struct bundle_for_response bfr){
     return response;
 }
 
-std::string get_response(struct bundle_for_response bfr, serverConf conf){
+std::string get_response(Bundle_for_response bfr, serverConf conf){
     bfr.re.status_is_handled = true;
     if (bfr.re.error_type != 200)
         return go_error(bfr.re.error_type, conf, bfr);
@@ -98,7 +100,7 @@ int fd_in_queue(int fd, int queue, int mode){
     return 0;
 }
 
-void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket *serv, serverConf conf, std::vector<struct bundle_for_response> bfr)
+void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket *serv, serverConf conf)
 {
     int j = check_conn(fd, serv, conf.http.size());
     Socket sock[1];
@@ -112,41 +114,60 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
         Socket test[1];
         test[0].fd_sock = clientsocket;
         if (fcntl(test[0].fd_sock, F_SETFL, O_NONBLOCK) < 0)
-            return;
+            return ;
         if (fd_in_queue(test[0].fd_sock, epoll_fd, 2))
-            return;
+            return ;
         bfr[i].fd_accept = test[0].fd_sock;
     }
     else if (event->events & EPOLLRDHUP){
         close(sock[0].fd_sock);
 // TO DO remove attached request
-        std::cout << "is stop" << std::endl;
     }
     else if (event->events & EPOLLOUT){
+        std::cout << "hello write" << std::endl;
         unsigned int i = 0;
         while (i != bfr.size() && bfr[i].fd_read != fd)
             i++;
         int ret;
         std::string content = get_response(bfr[i], conf);
+        std::cout << content << std::endl;
         ret = send(sock[0].fd_sock, content.c_str(), content.size(), 0);
         if (ret == 0 || ret == -1)
             return ;
+        
+        close(sock[0].fd_sock);
+
+// TO DO check quand maintenir co
+        // event->events = EPOLLIN;
+        // epoll_ctl(epoll_fd, EPOLL_CTL_MOD, sock[0].fd_sock, event);
+        // bfr[i].fd_accept = sock[0].fd_sock; // write?
+        // bfr[i].init_re();
         std::cout << "success" << std::endl;
     }
     else if (event->events & EPOLLIN){
         unsigned int i = 0;
-        while (i != bfr.size() && bfr[i].fd_accept != fd)
+        while (bfr[i].fd_accept != fd){
+            std::cout << fd << bfr[i].fd_accept << std::endl;
             i++;
+        }
         int ret = 0;
-        char buffer[300];
+        char buffer[3000];
+// TO DO find way either to adapt buffer size or to limit if not big enough or else buffer overflow
         bzero(buffer, sizeof(buffer));
         ret = recv(sock[0].fd_sock, buffer, sizeof(buffer), MSG_DONTWAIT);
+        std::cout << buffer << std::endl;
         if (ret == 0)
             return ;
         else if (ret == -1)
 // TO DO client exit or empty request
             return ;
-        bfr[i].re = first_dispatch(buffer);
+        // Request o;
+        // Bundle_for_response one;
+        // one.re = o;
+        // one = bfr[i];
+        first_dispatch(buffer, &(bfr[i].re));
+        std::cout << "request" << bfr[i].re.error_type << bfr[i].re.host_address << bfr[i].re.host_ip << std::endl;
+        // bfr[i].re = re;
         if (bfr[i].re.status_is_finished == true)
         {
             event->events = EPOLLOUT;
@@ -154,6 +175,10 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
             bfr[i].fd_read = sock[0].fd_sock;
         }
     }
+    else
+        std::cout << "bug somewhere" << std::endl;
+    std::cout << "ping" << std::endl;
+    return ;
 }
 
 int launch(serverConf conf){
@@ -162,7 +187,7 @@ int launch(serverConf conf){
     struct epoll_event events[MAX_EVENTS];
     unsigned int event_count;
     const char *check = NULL;
-    std::vector<struct bundle_for_response> bfr;
+    // std::vector<Bundle_for_response> bfr;
 
     std::string home = "127.0.0.1";
 // TO DO check error handling while creating queue
@@ -175,6 +200,7 @@ int launch(serverConf conf){
     Socket serv[conf.http.size()];
     while (i < conf.http.size()){
         int port = atoi(conf.http.data()[i]["server"]["listen"][0].c_str());
+// TO DO pas creer socket si port deja pris, mais garder conf car peut etre difference avec server names
         check = serv[i].create_socket(port, INADDR_ANY);
         if (check != NULL){
             std::cout << check << std::endl;
@@ -182,7 +208,7 @@ int launch(serverConf conf){
         }
         check = serv[i].server_binding();
         if (check != NULL){
-            std::cout << check << std::endl;
+            std::cout << check << errno << std::endl;
             return 1;
         }
         if (fcntl(serv[i].get_fd(), F_SETFL, O_NONBLOCK) < 0){
@@ -200,26 +226,29 @@ int launch(serverConf conf){
         }
         event.events = EPOLLIN;
         event.data.fd = serv[i].get_fd();
-        if (epoll_ctl(queue, EPOLL_CTL_ADD, serv[i].get_fd(), &event))
-        {
+        if (epoll_ctl(queue, EPOLL_CTL_ADD, serv[i].get_fd(), &event)){
             close(serv[i].get_fd());
             std::cout << "Failed to add file descriptor to epoll\n" << std::endl;
             return -1;
         }
-        struct bundle_for_response one;
+        Bundle_for_response one;
+        // Request re();
+        one.init_re();
         one.fd_listen = serv[i].get_fd();
         one.specs = i;
         bfr.push_back(one);
         i++;
     }
     while (1){
+        std::cout << "hello" << std::endl;
         event_count = epoll_wait(queue, events, MAX_EVENTS, -1);
         i = 0;
         while (i < event_count){
-            poll_handling(queue, events[i].data.fd, &events[i], serv, conf, bfr);
+            std::cout << "hello" << std::endl;
+            poll_handling(queue, events[i].data.fd, &events[i], serv, conf);
             i++;
         }
-        i = 0;
+        // i = 0;
     }
     close(queue);
     return 0;

@@ -29,57 +29,60 @@ bool get_content_type(std::string file){
     return false;
 }
 
-request fill_request_basic(char *msg, int n){
-    struct request r;
+void fill_request_basic(char *msg, int n, Request *r){
+    // struct request r;
     int i;
     int j;
     if (n == 1){
-        r.type = "GET";
+        r->type = "GET";
         i = 4;
     }
     else if (n == 3){
-        r.type = "POST";
+        r->type = "POST";
         i = 5;
     }
     else {
-        r.type = "DELETE";
+        r->type = "DELETE";
         i = 7;
     }
     j = i;
     while (msg[j] != ' ')
         j++;
-    std::string mess = &msg[i];
-    r.page = mess.substr(0, j - i);
-    r.is_cgi = get_content_type(r.page);
-    j += 2;
+    // std::cout << msg << std::endl; 
+    std::string mess = msg;
+    r->page = mess.substr(i, j - i);
+    std::cout << "page " << r->page << std::endl;
+    r->is_cgi = get_content_type(r->page);
+    j += 1;
     i = j;
     while (msg[i] != ' ' && msg[i] != '\n' && msg[i] != '\r')
         i++;
     std::string http = mess.substr(j, i - j);
+    std::cout << "http " << http << std::endl;
     if (http != "HTTP/1.1"){
-        r.error_type = 505;
-        return r;
+        r->error_type = 505;
+        return ;
     }
     std::size_t k = mess.find("Host: ");
     if (k == mess.npos){
-        r.error_type = 400;
-        return r;
+        r->error_type = 400;
+        return ;
     }
     size_t l = k + 7;
     while (mess[l] != ':')
         l++;
-    r.host_address = mess.substr(k, l - k);
+    r->host_address = mess.substr(k, l - k);
     l++;
     k = l;
     while (mess[l] != ' ' && mess[l] != '\n' && mess[l] != '\r')
         l++;
     std::string ip = mess.substr(k, l - k);
-    r.host_ip = atoi(ip.c_str());
-    r.error_type = 200;
-    return r;
+    r->host_ip = atoi(ip.c_str());
+    r->error_type = 200;
+    return ;
 }
 
-void classic_post(std::string mess, struct request *r){
+void classic_post(std::string mess, Request *r){
     r->content_size = get_content_size(mess);
     if (r->content_size == -1){
         r->error_type = 411;
@@ -91,17 +94,17 @@ void classic_post(std::string mess, struct request *r){
     r->status_is_finished = true;
 }
 
-void chunked_post(std::string mess, struct request *r){
+void chunked_post(std::string mess, Request *r){
     r->status_is_finished = false;
     (void)mess;
 }
 
-request fill_request_post(char *msg, struct request r){
+void fill_request_post(char *msg, Request *r){
     std::string mess = msg;
     std::size_t type = mess.find("Content-Type: ") + 14;
     if (type == 14){
-        r.error_type = 411;
-        return r;
+        r->error_type = 411;
+        return ;
     }
     size_t end = type;
     while (mess[end] != '\n' && mess[end] != ' ' && mess[end] != '\r')
@@ -110,17 +113,17 @@ request fill_request_post(char *msg, struct request r){
     if (content_type == "multipart/form-data"){
         std::size_t start = mess.find("boundary=\"");
         if (start == mess.npos){
-            r.error_type = 400;
-            r.status_is_finished = true;
-            return r;
+            r->error_type = 400;
+            r->status_is_finished = true;
+            return ;
         }
-        r.body = mess.substr(start, mess.size() - start);
-        r.status_is_finished = true;
+        r->body = mess.substr(start, mess.size() - start);
+        r->status_is_finished = true;
     }
     else if (content_type == "application/x-www-form-urlencoded"){
-        classic_post(mess, &r);
-        if (r.error_type != 200)
-            return r;
+        classic_post(mess, r);
+        if (r->error_type != 200)
+            return ;
     }
     else if (content_type == "text/plain"){
         std::size_t type = mess.find("Transfer-Encoding: ") + 19;
@@ -128,36 +131,36 @@ request fill_request_post(char *msg, struct request r){
             size_t end = type;
             while (mess[end] != '\n' && mess[end] != ' ' && mess[end] != '\r')
                 end++;
-            r.encoding = mess.substr(type, end - type);
-            if (r.encoding == "chunked")
-                chunked_post(mess, &r);
+            r->encoding = mess.substr(type, end - type);
+            if (r->encoding == "chunked")
+                chunked_post(mess, r);
         }
-        classic_post(mess, &r);
-        if (r.error_type != 200)
-            return r;
+        classic_post(mess, r);
+        if (r->error_type != 200)
+            return ;
     }
     else
-        classic_post(mess, &r);
-    return r;
+        classic_post(mess, r);
+    return ;
 }
 
-request first_dispatch(char *msg){
-    struct request r;
+void first_dispatch(char *msg, Request *r){
+    // struct request r;
     if (msg[0] == 'G' && msg[1] == 'E' && msg[2] == 'T' && msg[3] == ' '){
-        r = fill_request_basic(msg, 1);
-        r.status_is_finished = true;
+        fill_request_basic(msg, 1, r);
+        r->status_is_finished = true;
     }
     else if (msg[0] == 'D' && msg[1] == 'E' && msg[2] == 'L' && msg[3] == 'E' && msg[4] == 'T' && msg[5] == 'E' && msg[6] == ' '){
-        r = fill_request_basic(msg, 2);
-        r.status_is_finished = true;
+        fill_request_basic(msg, 2, r);
+        r->status_is_finished = true;
     }
     else if (msg[0] == 'P' && msg[1] == 'O' && msg[2] == 'S' && msg[3] == 'T' && msg[4] == ' '){
-        r = fill_request_basic(msg, 3);
-        r = fill_request_post(msg, r);
+        fill_request_basic(msg, 3, r);
+        fill_request_post(msg, r);
     }
     else if (msg == NULL)
-        r.error_type = 400;
+        r->error_type = 400;
     else
-        r.error_type = 405;
-    return r;
+        r->error_type = 405;
+    // return r;
 }
