@@ -9,7 +9,7 @@
 #include <cstring>
 #include <map>
 #include <utility>
-#include "unistd.h"
+#include <cstdlib>
 
 #define TRUE 1
 #define FALSE 0
@@ -81,6 +81,7 @@ class serverConf
         void printMap();
         //int getData();
         int checkMissing();
+        int checkNegValues();
 };
 
 serverConf start_conf(char *str);

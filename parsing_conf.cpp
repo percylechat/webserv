@@ -135,9 +135,11 @@ int serverConf::validSeparator(std::vector< std::string > ids, std::string conte
     size_t prevIdIndex = 0;
     size_t index = 0;
     bool found = 0;
+
     while (index < ids.size())
     {
-        if (content.find(ids[index], pos) != std::string::npos && isspace(content.at(content.find(ids[index], pos) + ids[index].length())))
+        if (content.find(ids[index], pos) != std::string::npos && isspace(content.at(content.find(ids[index], pos) + ids[index].length())) && \
+        (!pos || (pos && isspace(content.at(content.find(ids[index], pos) - 1))))) // this line can be removed if cgi ID is renamed
         {
             if (content.find(ids[index], pos) < prevIdIndex || prevIdIndex == 0)
                 prevIdIndex = content.find(ids[index], pos);
@@ -643,6 +645,45 @@ int serverConf::checkMissing()
     return TRUE;
 }
 
+int serverConf::checkNegValues()
+{
+    size_t i = 0;
+    size_t j = 0;
+
+    if (http.size() == 0)
+        return FALSE;
+    while (i < http.size())
+    {
+        if (!http.data()[i]["server"]["listen"].empty())
+        {
+            while (j < http.data()[i]["server"]["listen"].size())
+            {
+                if (atoi(http.data()[i]["server"]["listen"][j].c_str()) < 0)
+                {
+                    std::cout << "server " << i << " invalid port - negative number" << std::endl;
+                        return FALSE;
+                }
+                j++;
+            }
+        }
+        j = 0;
+        if (!http.data()[i]["server"]["client_max_body_size"].empty())
+        {
+            while (j < http.data()[i]["server"]["client_max_body_size"].size())
+            {
+                if (atoi(http.data()[i]["server"]["client_max_body_size"][j].c_str()) < 0)
+                {
+                    std::cout << "server " << i << " invalid client_max_body_size - negative number" << std::endl;
+                        return FALSE;
+                }
+                j++;
+            }
+        }
+        i++;
+    }
+    return TRUE;
+}
+
 serverConf start_conf(char *str)
 {
     serverConf conf;
@@ -663,7 +704,7 @@ serverConf start_conf(char *str)
     std::cout << "is correct format : " << ret << std::endl;
     //missing info
     ret = (ret) ? conf.checkMissing() : 0;
-    std::cout << "nothing is missing : " << ret << std::endl;
+    ret = (ret) ? conf.checkNegValues() : 0;
     //clé valeurs
     conf.printMap();
     //is valid ?
