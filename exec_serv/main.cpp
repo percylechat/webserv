@@ -215,7 +215,7 @@ int launch(serverConf conf){
             std::cout << "Error setting nonblocking socket" << std::endl;
             return 1;
         }
-// TO DO CLAIRE test nginx si client max body size obligatoire et que ce passe t il si 0 ou -1
+// TO DO CLAIRE test nginx si client max body size obligatoire et que ce passe t il si 0 ou -1 // 0 le client_max_body_size n'est pas checké | -1 erreur cmbs invalid
         // if (s_list[i].size < 0) // if no client size, put -1 and we go default. Else if put at 0 what happen?
         //     s_list[i].size = 10;
 // TO DO why listen 3 connexions
