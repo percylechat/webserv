@@ -12,14 +12,14 @@ std::string serverConf::getContent(std::string file)
 
     char *buffer = new char[length];
 
-    std::cout << "Reading " << length << " characters... ";
+    //std::cout << "Reading " << length << " characters... ";
     // read data as a block:
     is.read(buffer,length);
 
-    if (is)
-      std::cout << "all characters read successfully.";
-    else
-      std::cout << "error: only " << is.gcount() << " could be read";
+    //if (is)
+      //std::cout << "all characters read successfully.";
+    //else
+      //std::cout << "error: only " << is.gcount() << " could be read";
     is.close();
 
     // ...buffer contains the entire file...
@@ -78,7 +78,7 @@ void serverConf::pushLocationIds(std::map< std::string, std::vector< std::string
     location.insert(std::pair< std::string, std::vector< std::string > >("redirect", std::vector< std::string >()));
     location.insert(std::pair< std::string, std::vector< std::string > >("return", std::vector< std::string >()));
     location.insert(std::pair< std::string, std::vector< std::string > >("try_files", std::vector< std::string >()));
-    location.insert(std::pair< std::string, std::vector< std::string > >("proxy_set_headers", std::vector< std::string >()));
+    location.insert(std::pair< std::string, std::vector< std::string > >("proxy_set_header", std::vector< std::string >()));
     location.insert(std::pair< std::string, std::vector< std::string > >("proxy_buffers", std::vector< std::string >()));
     location.insert(std::pair< std::string, std::vector< std::string > >("proxy_buffer_size", std::vector< std::string >()));
     location.insert(std::pair< std::string, std::vector< std::string > >("proxy_pass", std::vector< std::string >()));
@@ -160,6 +160,10 @@ int serverConf::isValidLocation(std::string content, std::string locationName)
 
     while (pos != content.length())
     {
+        while (pos < content.length() && isspace(content.at(pos)))
+            pos++;
+        if (pos == content.length())
+            return TRUE;
         if (findRelevantId(content, _locationIds, &key, pos) == FALSE)
             return FALSE;
         if (http.data()[http.size() - 1]["location " + locationName][key].empty())
@@ -186,7 +190,11 @@ int serverConf::isValidLocation(std::string content, std::string locationName)
         if (!rawContent[i])
             return FALSE;
         i = 0;
-        std::string trimContent = rawContent.substr(rawContent.find_first_not_of("\t\n\r\v\f "), rawContent.length() - rawContent.find_first_not_of("\t\n\r\v\f "));
+        std::string trimContent = "";
+        if (rawContent.find_first_not_of("\t\n\r\v\f ") != std::string::npos)
+            trimContent = rawContent.substr(rawContent.find_first_not_of("\t\n\r\v\f "), rawContent.length() - rawContent.find_first_not_of("\t\n\r\v\f "));
+        else
+            trimContent = rawContent;
         pos = idx + 1;
         if (key == "autoindex" && trimContent == "on")  
             trimContent = "1";
@@ -199,17 +207,25 @@ int serverConf::isValidLocation(std::string content, std::string locationName)
     return TRUE;
 }
 
-int serverConf::getLocation(std::string content, std::string *key, size_t *pos, bool *isLocation)
+int serverConf::getLocation(std::string content, std::string key, size_t *pos, bool *isLocation)
 {
     std::string locationName = "";
     std::string blockLocation = "";
     size_t i = 0;
 
-    locationName = content.substr(content.find(*key, *pos) + key->length(), content.substr(content.find(*key, *pos) + key->length()).find("{", 0));
-    locationName = locationName.substr(locationName.find_first_not_of("\t\n\r\v\f "), locationName.find_last_not_of("\t\n\r\v\f "));
+    if (content.find(key, *pos) != std::string::npos && content.substr(content.find(key, *pos) + key.length()).find("{", 0) != std::string::npos)
+        locationName = content.substr(content.find(key, *pos) + key.length(), content.substr(content.find(key, *pos) + key.length()).find("{", 0));
+    else
+        return FALSE;
+    if (locationName.find_first_not_of("\t\n\r\v\f ") != std::string::npos && locationName.find_last_not_of("\t\n\r\v\f ") != std::string::npos)
+        locationName = locationName.substr(locationName.find_first_not_of("\t\n\r\v\f "), locationName.find_last_not_of("\t\n\r\v\f "));
+    else
+        return FALSE;
     setLocationId(locationName);
     if (content.find("{", *pos) != std::string::npos)
         blockLocation = getBlockLocation(&content[content.find("{", *pos) + 1]);
+    else
+        return FALSE;    
     if (isValidLocation(blockLocation, locationName) == FALSE)
         return FALSE;
     if (content.find("}", *pos) != std::string::npos)
@@ -238,7 +254,7 @@ int serverConf::isValidServer(std::string content)
             return FALSE;
         if (key == "location")
         {
-            if (getLocation(content, &key, &pos, &isLocation) == FALSE)
+            if (getLocation(content, key, &pos, &isLocation) == FALSE)
                 return FALSE;
         }
         else
@@ -268,7 +284,11 @@ int serverConf::isValidServer(std::string content)
             if (!rawContent[i])
                 return FALSE;
             i = 0;
-            std::string trimContent = rawContent.substr(rawContent.find_first_not_of("\t\n\r\v\f "), rawContent.length() - rawContent.find_first_not_of("\t\n\r\v\f "));
+            std::string trimContent = "";
+            if (rawContent.find_first_not_of("\t\n\r\v\f ") != std::string::npos)
+                trimContent = rawContent.substr(rawContent.find_first_not_of("\t\n\r\v\f "), rawContent.length() - rawContent.find_first_not_of("\t\n\r\v\f "));
+            else
+                trimContent = rawContent;
             pos = idx + 1;
             http.data()[http.size() - 1][category][key].push_back(trimContent);
         }
@@ -411,7 +431,13 @@ int serverConf::topLevelDirectives(std::string content)
                 return FALSE;
         }
         else
+        {
+            while (pos < content.length() && isspace(content.at(pos)))
+                pos++;
+            if (pos == content.length())
+                return TRUE;
             return FALSE;
+        }
     }
     i = 0;
     while (i < 4)
