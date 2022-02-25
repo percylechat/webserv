@@ -416,7 +416,7 @@ int serverConf::topLevelDirectives(std::string content)
         i = 0;
         while (i < _directives.size())
         {
-            if (!content.compare(pos, _directives[i].length(), _directives[i]))
+            if (!content.compare(pos, _directives[i].length(), _directives[i]) && (!pos || (pos && isspace(content.at(content.find(_directives[i], pos) - 1)))))
             {
                 count[i]++;
                 knownDirective++;
