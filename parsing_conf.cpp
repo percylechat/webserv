@@ -110,7 +110,8 @@ int serverConf::findRelevantId(std::string content, std::vector< std::string > i
 
     while (i < ids.size())
     {
-        if (content.find(ids[i], pos) != std::string::npos && isspace(content.at(content.find(ids[i], pos) + ids[i].length())))
+        if (content.find(ids[i], pos) != std::string::npos && isspace(content.at(content.find(ids[i], pos) + ids[i].length())) \
+        && (!pos || (pos && isspace(content.at(content.find(ids[i], pos) - 1)))))
         {
             if (content.find(ids[i], pos) < prevIdPos || prevIdPos == 0)
             {
@@ -698,7 +699,7 @@ serverConf start_conf(char *str)
     std::string output = "";
     output += conf.getContent(file);
     noComment = conf.removeComments(output);
-    std::cout << noComment << std::endl;
+    //std::cout << noComment << std::endl;
     //empty file
     ret = !noComment.empty();
     std::cout << "is not empty : " << ret << std::endl;
