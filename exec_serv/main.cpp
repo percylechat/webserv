@@ -97,6 +97,7 @@ std::string go_error(int err, serverConf conf, Bundle_for_response bfr){
             else if (err == 505)// bad hhtp protocol version
                 response.append("505 HTTP VERSION NOT SUPPORTED Content-Type: " + findExtension(url) + "Context-Lenght: " + numberString + "\r\n\r\n");
         }
+        is.close();
     }
     else
     {

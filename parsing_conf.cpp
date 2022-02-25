@@ -24,8 +24,10 @@ std::string serverConf::getContent(std::string file)
     is.close();
 
     // ...buffer contains the entire file...
-
-    ret = std::string(buffer, length);
+    if (length != -1)
+        ret = std::string(buffer, length);
+    else
+        ret = std::string("");
     delete [] buffer;
   }
   return ret;
