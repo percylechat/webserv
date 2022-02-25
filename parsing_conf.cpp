@@ -14,7 +14,8 @@ std::string serverConf::getContent(std::string file)
 
     //std::cout << "Reading " << length << " characters... ";
     // read data as a block:
-    is.read(buffer,length);
+    if (length != -1)
+        is.read(buffer,length);
 
     //if (is)
       //std::cout << "all characters read successfully.";

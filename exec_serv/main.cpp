@@ -6,6 +6,7 @@
 #include <vector>
 #include <cstdlib>
 #include <cstring>
+#include <sstream>
 
 #include <fcntl.h>
 // #include "../parsing_conf.hpp"
@@ -31,28 +32,80 @@ std::vector<Bundle_for_response> bfr;
 // Sec-Fetch-Site: cross-site
 // Cache-Control: max-age=0
 
+std::string findExtension(std::string filepath)
+{
+    size_t i;
+
+    if ((i = filepath.rfind('.')) == std::string::npos)
+        return "none";
+    std::string ext = filepath.substr(i+1);
+    if (ext == "html")
+        return "text/" + ext;
+    else if (ext == "cgi")
+        return "test/html";
+    else
+        return "image/" + ext;
+}
+
 std::string go_error(int err, serverConf conf, Bundle_for_response bfr){
     std::string response = "HTTP/1.1 ";
-    if (conf.http.data()[bfr.specs]["server"]["error_page"][0] != "")
+    if (conf.http.data()[bfr.specs]["server"]["error_page"].size() == 0)
+    {
         //DO smthing
         // si error page presente
         // 404 NOT FOUND -> code d'erreur et explication
         // Content-Type: text/html Context-Lenght: 109\r\n\r\n -> type de page et taille fichier
         // ->fichier
-        ;
+    }
     else{
-        if (err == 400)// for now for missing extension in file
-            response.append("400 BAD REQUEST");
-        else if (err == 404)// for now, couldn't open file so does not exist
-            response.append("404 NOT FOUND");
-        else if (err == 405)// is not GET POST or DELETE
-            response.append("405 METHOD NOT ALLOWED");
-        else if (err == 411)// content lenght missing
-            response.append("411 LENGHT REQUIRED");
-        else if (err == 500)// For now, couldn't delete file
-            response.append("500 INTERNAL SERVER ERROR");
-        else if (err == 505)// bad hhtp protocol version
-            response.append("505 HTTP VERSION NOT SUPPORTED");
+        int errComp = atoi(conf.http.data()[bfr.specs]["server"]["error_page"][0].c_str());
+        std::string url = conf.http.data()[bfr.specs]["server"]["error_page"][0];
+
+        if (errComp == err && url.find_first_not_of("\t\n\r\v\f ", 3) != std::string::npos)
+        {
+            url = url.substr(url.find_first_not_of("\t\n\r\v\f ", 3), url.length() - url.find_first_not_of("\t\n\r\v\f ", 3));
+            std::ifstream is (url.c_str(), std::ifstream::binary);
+            if (is) {
+            //if (is)
+            //std::cout << "all characters read successfully.";
+            //else
+            //std::cout << "error: only " << is.gcount() << " could be read";
+            is.seekg(3, is.end);
+            int length = is.tellg();
+            is.seekg(3, is.beg);
+            //In this example, seekg is used to move the position to the end of the file, and then back to the beginning.
+            char *buffer = new char[length];
+            if (length != -1)
+                is.read(buffer,length);
+            is.close();
+            std::string content(buffer, length);
+            delete [] buffer;
+
+            std::ostringstream digit;
+            digit << length;
+            std::string numberString(digit.str());
+            if (err == 400)// for now for missing extension in file
+                response.append("400 BAD REQUEST Content-Type: " + findExtension(url) + "Context-Lenght: " + numberString + "\r\n\r\n");
+            else if (err == 404)// for now, couldn't open file so does not exist
+                response.append("404 NOT FOUND Content-Type: " + findExtension(url) + "Context-Lenght: " + numberString + "\r\n\r\n");
+            else if (err == 405)// is not GET POST or DELETE
+                response.append("405 METHOD NOT ALLOWED Content-Type: " + findExtension(url) + "Context-Lenght: " + numberString + "\r\n\r\n");
+            else if (err == 411)// content lenght missing
+                response.append("411 LENGHT REQUIRED Content-Type: " + findExtension(url) + "Context-Lenght: " + numberString + "\r\n\r\n");
+            else if (err == 500)// For now, couldn't delete file
+                response.append("500 INTERNAL SERVER ERROR Content-Type: " + findExtension(url) + "Context-Lenght: " + numberString + "\r\n\r\n");
+            else if (err == 505)// bad hhtp protocol version
+                response.append("505 HTTP VERSION NOT SUPPORTED Content-Type: " + findExtension(url) + "Context-Lenght: " + numberString + "\r\n\r\n");
+        }
+    }
+    else
+    {
+        if (errComp == err)
+            std::cout << "no url" << std::endl;
+        else
+            std::cout << "err != errComp" << std::endl;
+        return conf.http.data()[bfr.specs]["server"]["error_page"][0].substr(0, 3);
+    }
     }
     return response;
 }
