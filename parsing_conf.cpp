@@ -10,6 +10,11 @@ std::string serverConf::getContent(std::string file)
     int length = is.tellg();
     is.seekg(0, is.beg);
 
+    if (length == -1)
+    {
+        is.close();
+        return "";
+    }
     char *buffer = new char[length];
 
     //std::cout << "Reading " << length << " characters... ";
@@ -21,13 +26,9 @@ std::string serverConf::getContent(std::string file)
       //std::cout << "all characters read successfully.";
     //else
       //std::cout << "error: only " << is.gcount() << " could be read";
-    is.close();
 
     // ...buffer contains the entire file...
-    if (length != -1)
-        ret = std::string(buffer, length);
-    else
-        ret = std::string("");
+    ret = std::string(buffer, length);
     delete [] buffer;
   }
   return ret;

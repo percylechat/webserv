@@ -73,11 +73,15 @@ std::string go_error(int err, serverConf conf, Bundle_for_response bfr){
             is.seekg(3, is.end);
             int length = is.tellg();
             is.seekg(3, is.beg);
+            if (length == -1)
+            {
+                std::cout << "negative length of error page" << std::endl;
+                is.close();
+                return "";
+            }
             //In this example, seekg is used to move the position to the end of the file, and then back to the beginning.
             char *buffer = new char[length];
-            if (length != -1)
-                is.read(buffer,length);
-            is.close();
+            is.read(buffer,length);
             std::string content(buffer, length);
             delete [] buffer;
 
@@ -105,7 +109,7 @@ std::string go_error(int err, serverConf conf, Bundle_for_response bfr){
             std::cout << "no url" << std::endl;
         else
             std::cout << "err != errComp" << std::endl;
-        return conf.http.data()[bfr.specs]["server"]["error_page"][0].substr(0, 3);
+        return "";
     }
     }
     return response;
