@@ -24,7 +24,7 @@ const char *Socket::create_socket(int port, in_addr_t inter){
     // in_addr_t inter = inet_addr(interface);
 // preparation pour l'assignation de la,socket a un port(bind)
     this->address.sin_family = AF_INET; //(protocol ipv4)
-    this->address.sin_port = htons(port); // TO DO CHECK BONNE CONV
+    this->address.sin_port = htons(port);
     this->address.sin_addr.s_addr = htonl(inter);
     this->fd_sock = socket(AF_INET, SOCK_STREAM, 0);
 // DOMAIN: communication domain in which the socket should be created.(ipv4, ipv6)
@@ -36,7 +36,6 @@ const char *Socket::create_socket(int port, in_addr_t inter){
     return NULL;
 }
 const char *Socket::server_binding(){
-//this part linked to memset that we try not to do?
     if (sizeof(this->address) < 0)
         return "Error: failure to bind server_socket";
     int res = bind(this->fd_sock, (struct sockaddr *)&this->address, sizeof(this->address));
@@ -47,7 +46,7 @@ const char *Socket::server_binding(){
 const char *Socket::server_listening(int backlog){
     int res = listen(this->fd_sock, backlog);
     if (res != 0)
-        return "Error: failure to listen from server_socket";
+        return "Error: failure to listen from server_socket, it's probably full for now";
     return NULL;
 }
 int Socket::server_accept(){

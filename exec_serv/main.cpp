@@ -130,6 +130,60 @@ std::string get_response(Bundle_for_response bfr, serverConf conf){
     }
 }
 
+int compare_path(std::string root, std::string page){
+    int res = 1;
+    root = root.substr(1, root.size() - 1);
+    page = page.substr(1, page.size() - 1);
+    std::size_t test1 = root.find_first_of("/");
+    std::size_t test2 = page.find_first_of("/");
+    while (test1 != root.npos && test2 != page.npos){
+        std::string check1 = root.substr(0, test1);
+        std::string check2 = page.substr(0, test2);
+        if (check1 != check2)
+            return res;
+        res++;
+        root = root.substr(test1 + 1, root.size() - test1 + 1);
+        page = page.substr(test2 + 1, page.size() - test2 + 1);
+        test1 = root.find_first_of("/");
+        test2 = page.find_first_of("/");
+    }
+    return res;
+}
+
+void confirm_used_server(Bundle_for_response bfr, serverConf conf){
+    if (conf.http.data()[bfr.specs]["server"]["root"].size() != 1){
+        std::size_t l = 1;
+        int best = compare_path(conf.http.data()[bfr.specs]["server"]["root"][0], bfr.re.page);
+        while (l < conf.http.data()[bfr.specs]["server"]["root"].size()){
+            int curr = compare_path(conf.http.data()[bfr.specs]["server"]["root"][l], bfr.re.page);
+            if (curr > best){
+                best = curr;
+                bfr.root = l;
+            }
+            l++;
+        }
+    }
+    else
+        bfr.root = 0;
+    std::size_t j = bfr.specs + 1;
+    while (j < conf.http.size()){
+        if (conf.http.data()[j]["server"]["listen"][0] == bfr.re.host_ip){
+            std::size_t k = 0;
+            int best = bfr.root;
+            while (k < conf.http.data()[j]["server"]["root"].size()){
+                int curr = compare_path(conf.http.data()[j]["server"]["root"][k], bfr.re.page);
+                if (curr > best){
+                    best = curr;
+                    bfr.root = k;
+                    bfr.specs = j;
+                }
+                k++;
+            }
+        }
+        j++;
+    }
+}
+
 int check_conn(int fd_1, Socket *serv, int nbr){
     int i = 0;
     while (i < nbr){
@@ -226,11 +280,8 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
         else if (ret == -1)
 // TO DO client exit or empty request
             return ;
-        // Request o;
-        // Bundle_for_response one;
-        // one.re = o;
-        // one = bfr[i];
         first_dispatch(buffer, &(bfr[i].re));
+        confirm_used_server(bfr[i], conf);
         std::cout << "request" << bfr[i].re.error_type << bfr[i].re.host_address << bfr[i].re.host_ip << std::endl;
         // bfr[i].re = re;
         if (bfr[i].re.status_is_finished == true)
@@ -247,61 +298,54 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
 }
 
 int launch(serverConf conf){
-// TO DO think max event variable
     struct epoll_event event;
-    struct epoll_event events[MAX_EVENTS];
+    struct epoll_event events[MAX_EVENTS]; // number of fd attended at same time, here 5
     unsigned int event_count;
     const char *check = NULL;
-    // std::vector<Bundle_for_response> bfr;
 
     std::string home = "127.0.0.1";
-// TO DO check error handling while creating queue
     int queue = epoll_create1(EPOLL_CLOEXEC);
     if (queue == -1){
-        std::cout << "wtf epoll1" << std::endl;
+        std::cout << "Error: queue handler epoll couldn't be created" << std::endl;
         return 1;
     }
     std::size_t i = 0;
     Socket serv[conf.http.size()];
     while (i < conf.http.size()){
-        int port = atoi(conf.http.data()[i]["server"]["listen"][0].c_str());
-// TO DO pas creer socket si port deja pris, mais garder conf car peut etre difference avec server names
-        check = serv[i].create_socket(port, INADDR_ANY);
-        if (check != NULL){
-            std::cout << check << std::endl;
-            return 1;
+        std::size_t j = 0;
+        while (j < conf.http.data()[i]["server"]["listen"].size()){
+            int port = atoi(conf.http.data()[i]["server"]["listen"][j].c_str());
+            check = serv[i].create_socket(port, INADDR_ANY);
+            if (check == NULL){
+                check = serv[i].server_binding();
+                if (check != NULL){
+                    std::cout << check << std::endl;
+                    return 1;
+                }
+                if (fcntl(serv[i].get_fd(), F_SETFL, O_NONBLOCK) < 0){
+                    std::cout << "Error setting nonblocking socket" << std::endl;
+                    return 1;
+                }
+                check = serv[i].server_listening(3); // only 2 waiting conneions authorized so the server is not overcharged
+                if (check != NULL){
+                    std::cout << check << std::endl;
+                    return 1;
+                }
+                event.events = EPOLLIN;
+                event.data.fd = serv[i].get_fd();
+                if (epoll_ctl(queue, EPOLL_CTL_ADD, serv[i].get_fd(), &event)){
+                    close(serv[i].get_fd());
+                    std::cout << "Failed to add file descriptor to epoll\n" << std::endl;
+                    return -1;
+                }
+                Bundle_for_response one;
+                one.init_re();
+                one.fd_listen = serv[i].get_fd();
+                one.specs = i;
+                bfr.push_back(one);
+            }
+            j++;
         }
-        check = serv[i].server_binding();
-        if (check != NULL){
-            std::cout << check << std::endl;
-            return 1;
-        }
-        if (fcntl(serv[i].get_fd(), F_SETFL, O_NONBLOCK) < 0){
-            std::cout << "Error setting nonblocking socket" << std::endl;
-            return 1;
-        }
-// TO DO CLAIRE test nginx si client max body size obligatoire et que ce passe t il si 0 ou -1 // 0 le client_max_body_size n'est pas checké | -1 erreur cmbs invalid
-        // if (s_list[i].size < 0) // if no client size, put -1 and we go default. Else if put at 0 what happen?
-        //     s_list[i].size = 10;
-// TO DO why listen 3 connexions
-        check = serv[i].server_listening(3);
-        if (check != NULL){ // TO DO can't listen because full ? Maybe send proper error to bounce
-            std::cout << check << std::endl;
-            return 1;
-        }
-        event.events = EPOLLIN;
-        event.data.fd = serv[i].get_fd();
-        if (epoll_ctl(queue, EPOLL_CTL_ADD, serv[i].get_fd(), &event)){
-            close(serv[i].get_fd());
-            std::cout << "Failed to add file descriptor to epoll\n" << std::endl;
-            return -1;
-        }
-        Bundle_for_response one;
-        // Request re();
-        one.init_re();
-        one.fd_listen = serv[i].get_fd();
-        one.specs = i;
-        bfr.push_back(one);
         i++;
     }
     while (1){
@@ -324,6 +368,9 @@ int main(int argc, char *argv[]){
         std::cout << "ERROR, conf file missing" << std::endl;
     }
     serverConf conf = start_conf(argv[1]);
-    // std::cout << "hello" << std::endl;
+    if (!conf._valid){
+        std::cout << "This configuration file is invalid" << std::endl;
+        return 1;
+    }
     return launch(conf);
 }

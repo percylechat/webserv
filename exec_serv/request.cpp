@@ -23,15 +23,13 @@ bool get_content_type(std::string file){
     int i = file.find_last_of(".");
     if (i == -1)
         return false;
-    std::string ext = file.substr(i + 1);
-// TO DO need ti be cgi extension from conf + .
-    if (ext == "sh")
+    std::string ext = file.substr(i);
+    if (ext == ".sh")
         return true;
     return false;
 }
 
 void fill_request_basic(char *msg, int n, Request *r){
-    // struct request r;
     int i;
     int j;
     if (n == 1){
@@ -49,7 +47,6 @@ void fill_request_basic(char *msg, int n, Request *r){
     j = i;
     while (msg[j] != ' ')
         j++;
-    // std::cout << msg << std::endl; 
     std::string mess = msg;
     r->page = mess.substr(i, j - i);
     std::cout << "page " << r->page << std::endl;

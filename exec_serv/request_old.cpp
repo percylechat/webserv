@@ -1,7 +1,5 @@
 #include "request.hpp"
 
-//TO DO create "key" value that is checked to add stuff (serevarl keys?)
-
 // void Request::go_cgi_get(std::string file){
 // need env? mais env total ou que celui de server?
     // char *env = getenv(env);
@@ -152,7 +150,6 @@ void Request::extract_data_post(std::string mess, std::vector<std::string> cat){
     start += 2;
     std::string content = mess.substr(start, mess.size() - start);
     int j = std::count(content.c_str(), content.c_str() + len, '&');
-    // TO DO check if a key has no value, if so error?
     int k = -1;
     while (k < j){
         std::string key = content.substr(0, content.find("="));

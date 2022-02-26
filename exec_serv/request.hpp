@@ -56,6 +56,7 @@ class Bundle_for_response{
     int fd_write;
     Request re;
     int specs;
+    int root;
     Bundle_for_response() {}
     Bundle_for_response& operator=( const Bundle_for_response & one){
         if (this == &one)
