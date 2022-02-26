@@ -9,7 +9,7 @@
 #include <cstring>
 #include <map>
 #include <utility>
-#include "unistd.h"
+#include <cstdlib>
 
 #define TRUE 1
 #define FALSE 0
@@ -70,7 +70,7 @@ class serverConf
         void pushServerIds(std::map< std::string, std::vector< std::string > > server);
         void pushLocationIds(std::map< std::string, std::vector< std::string > > location);
         int findRelevantId(std::string content, std::vector< std::string > ids, std::string *key, size_t pos);
-        int getLocation(std::string content, std::string *key, size_t *pos, bool *isLocation);
+        int getLocation(std::string content, std::string key, size_t *pos, bool *isLocation);
         int checkBlock(std::string content, bool isHttp);
         std::string getBlock(std::string content);
         std::string getBlockLocation(std::string content);
@@ -81,6 +81,7 @@ class serverConf
         void printMap();
         //int getData();
         int checkMissing();
+        int checkNegValues();
 };
 
 serverConf start_conf(char *str);
