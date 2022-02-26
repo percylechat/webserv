@@ -13,7 +13,6 @@ std::map<std::string, std::string> create_env(Bundle_for_response bfr, serverCon
     cgi.insert(std::make_pair("SERVER_PORT", conf.http.data()[bfr.specs]["server"]["listen"][0]));
     cgi.insert(std::make_pair("CONTENT_TYPE", bfr.re.content_type));
     cgi.insert(std::make_pair("REQUEST_METHOD", bfr.re.type));
-// TO DO handle delete?
     if (bfr.re.type == "GET")
         cgi.insert(std::make_pair("CONTENT_LENGTH", "0"));
     else {
@@ -24,10 +23,9 @@ std::map<std::string, std::string> create_env(Bundle_for_response bfr, serverCon
         cgi.insert(std::make_pair("CONTENT_LENGTH", s));
         cgi.insert(std::make_pair("BODY", bfr.re.body));
     }
-// TO DO find way to check which conf file should go if several have same port but one has cgi of smth
     cgi.insert(std::make_pair("PATH_INFO", bfr.re.page));
     cgi.insert(std::make_pair("PATH_TRANSLATED", bfr.re.page));
-
+	// cgi.insert(std::make_pair("DIR_PATH"], _loc.get_root();
 // need query url ?name=serge
     // _env["QUERY_STRING"]		= _req.get_cgi();
 //Contient le chemin HTTP du script les données transmises dans l'appel.
@@ -36,7 +34,7 @@ std::map<std::string, std::string> create_env(Bundle_for_response bfr, serverCon
 	// _env["REQUEST_URI"]			= _loc.get_uri();
 	// _env["SCRIPT_NAME"]			= _loc.get_cgi_path();
 	// _env["SERVER_NAME"]			= _conf.get_server_name();
-	//_env["DIR_PATH"]			= _loc.get_root();
+
 	// _env["REDIRECT_STATUS"]		= "200";
     return cgi;
 }
@@ -61,11 +59,13 @@ char **go_env(std::map<std::string, std::string> cgi){
 
 std::string handle_cgi(Bundle_for_response bfr, serverConf conf){
 // TO DO be careful of script permissions
+    if (bfr.re.type == "DELETE"){
+        bfr.re.error_type = 405;
+        return go_error(bfr.re.error_type, conf, bfr);
+    }
     bfr.re.page = bfr.re.page.substr(1, bfr.re.page.size() - 1);
     bfr.re.page = bfr.re.page.substr(bfr.re.page.find_last_of("/") + 1, bfr.re.page.size() - bfr.re.page.find_last_of("/") + 1);
-
     std::map<std::string, std::string> cgi = create_env(bfr, conf);
-    // char **env = go_env(cgi);
     int pipe_fd[2];
     int fd_save[2];
     pid_t pid;
@@ -82,7 +82,7 @@ std::string handle_cgi(Bundle_for_response bfr, serverConf conf){
         char *args[2];
         char **env = go_env(cgi);
                 // std::cout << "ping" << conf.http.data()[bfr.specs]["server"]["root"][0].c_str() << std::endl;
-                std::string te = "cgi";
+        std::string te = conf.http.data()[bfr.specs]["server"]["root"][bfr.root];
         chdir(te.c_str());
         std::cout << "ping" << bfr.re.page.c_str() << std::endl;
 		args[0] = (char*)bfr.re.page.c_str();
@@ -134,12 +134,10 @@ std::string handle_cgi(Bundle_for_response bfr, serverConf conf){
 	std::ostringstream oss;
 	oss << fin.rdbuf();
 	std::string ret(oss.str());
-    // std::ifstream		t(name.c_str());
-	// std::stringstream	buffer;
-	// buffer << t.rdbuf();
-    // std::string ret = buffer.str();
-    // ret << buffer;
+    std::string end = "HTTP/1.1 200 OK \r\nContent-Length: " ;
+    end.append(itoa(ret.size()));
+    end.append("\r\n\r\n" + ret);
     std::cout << "ok" << ret << std::endl;
     		// delete [] env;
-	return ret;
+	return end;
 }

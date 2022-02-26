@@ -143,7 +143,6 @@ void fill_request_post(char *msg, Request *r){
 }
 
 void first_dispatch(char *msg, Request *r){
-    // struct request r;
     if (msg[0] == 'G' && msg[1] == 'E' && msg[2] == 'T' && msg[3] == ' '){
         fill_request_basic(msg, 1, r);
         r->status_is_finished = true;

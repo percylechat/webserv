@@ -17,6 +17,8 @@
 
 #include <errno.h>
 
+#include <stdlib.h>
 #include <unistd.h>
 
 std::string handle_cgi(Bundle_for_response bfr, serverConf conf);
+std::string go_error(int err, serverConf conf, Bundle_for_response bfr);

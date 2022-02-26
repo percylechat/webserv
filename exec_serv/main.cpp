@@ -119,7 +119,6 @@ std::string get_response(Bundle_for_response bfr, serverConf conf){
     bfr.re.status_is_handled = true;
     if (bfr.re.error_type != 200)
         return go_error(bfr.re.error_type, conf, bfr);
-// TO DO need check which location
     // check_methods(&r, s);
     std::cerr << "kikou" << std::endl;
     if (bfr.re.is_cgi == true)
@@ -182,6 +181,10 @@ void confirm_used_server(Bundle_for_response bfr, serverConf conf){
         }
         j++;
     }
+// TO DO here?
+//     Define a directory or a file from where the file should be searched (for example,
+// if url /kapouet is rooted to /tmp/www, url /kapouet/pouic/toto/pouet is
+// /tmp/www/pouic/toto/pouet)
 }
 
 int check_conn(int fd_1, Socket *serv, int nbr){
@@ -194,16 +197,9 @@ int check_conn(int fd_1, Socket *serv, int nbr){
     return -1;
 }
 
-int fd_in_queue(int fd, int queue, int mode){
-    //mode 1 EPOLLIN 2 EPOLLIN EPOLLRDHUP 3 EPOLLOUT
+int fd_in_queue(int fd, int queue){
     struct epoll_event event;
-    
-    if (mode == 1)
-        event.events = EPOLLIN;
-    else if (mode == 2)
-        event.events = EPOLLIN | EPOLLRDHUP;
-    else
-        event.events = EPOLLOUT;
+    event.events = EPOLLIN | EPOLLRDHUP;
     event.data.fd = fd;
     if (epoll_ctl(queue, EPOLL_CTL_ADD, fd, &event))
     {
@@ -228,13 +224,16 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
         test[0].fd_sock = clientsocket;
         if (fcntl(test[0].fd_sock, F_SETFL, O_NONBLOCK) < 0)
             return ;
-        if (fd_in_queue(test[0].fd_sock, epoll_fd, 2))
+        if (fd_in_queue(test[0].fd_sock, epoll_fd))
             return ;
         bfr[i].fd_accept = test[0].fd_sock;
     }
     else if (event->events & EPOLLRDHUP){
+        unsigned int i = 0;
+        while (i != bfr.size() && bfr[i].fd_read != fd)
+            i++;
+        bfr[i].init_re();
         close(sock[0].fd_sock);
-// TO DO remove attached request
     }
     else if (event->events & EPOLLOUT){
         std::cout << "hello write" << std::endl;
@@ -254,9 +253,6 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
         if (ret == 0 || ret == -1)
             return ;
         close(sock[0].fd_sock);
-
-
-// TO DO check quand maintenir co
         // event->events = EPOLLIN;
         // epoll_ctl(epoll_fd, EPOLL_CTL_MOD, sock[0].fd_sock, event);
         // bfr[i].fd_accept = sock[0].fd_sock; // write?
@@ -275,15 +271,12 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
         bzero(buffer, sizeof(buffer));
         ret = recv(sock[0].fd_sock, buffer, sizeof(buffer), MSG_DONTWAIT);
         std::cout << buffer << std::endl;
-        if (ret == 0)
-            return ;
-        else if (ret == -1)
-// TO DO client exit or empty request
+        if (ret == -1)
+// TO DO handle failed recv
             return ;
         first_dispatch(buffer, &(bfr[i].re));
         confirm_used_server(bfr[i], conf);
         std::cout << "request" << bfr[i].re.error_type << bfr[i].re.host_address << bfr[i].re.host_ip << std::endl;
-        // bfr[i].re = re;
         if (bfr[i].re.status_is_finished == true)
         {
             event->events = EPOLLOUT;
@@ -357,8 +350,8 @@ int launch(serverConf conf){
             poll_handling(queue, events[i].data.fd, &events[i], serv, conf);
             i++;
         }
-        // i = 0;
     }
+    // TO DO proper end of all sockets + ctrl C signal
     close(queue);
     return 0;
 }
