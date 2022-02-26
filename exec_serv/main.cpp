@@ -63,6 +63,7 @@ std::string get_response(Bundle_for_response bfr, serverConf conf){
         return go_error(bfr.re.error_type, conf, bfr);
 // TO DO need check which location
     // check_methods(&r, s);
+    std::cerr << "kikou" << std::endl;
     if (bfr.re.is_cgi == true)
         return handle_cgi(bfr, conf);
     else{
@@ -132,10 +133,16 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
         std::string content = get_response(bfr[i], conf);
         std::cout << content << std::endl;
         ret = send(sock[0].fd_sock, content.c_str(), content.size(), 0);
+        if (ret == 0){
+            std::cout << "MT response" << std::endl;
+            close(sock[0].fd_sock);
+            exit(0);
+            // close(bfr[i].fd_read);
+        }
         if (ret == 0 || ret == -1)
             return ;
-        
         close(sock[0].fd_sock);
+
 
 // TO DO check quand maintenir co
         // event->events = EPOLLIN;
@@ -208,7 +215,7 @@ int launch(serverConf conf){
         }
         check = serv[i].server_binding();
         if (check != NULL){
-            std::cout << check << errno << std::endl;
+            std::cout << check << std::endl;
             return 1;
         }
         if (fcntl(serv[i].get_fd(), F_SETFL, O_NONBLOCK) < 0){

@@ -24,7 +24,8 @@ bool get_content_type(std::string file){
     if (i == -1)
         return false;
     std::string ext = file.substr(i + 1);
-    if (ext == "cgi")
+// TO DO need ti be cgi extension from conf + .
+    if (ext == "sh")
         return true;
     return false;
 }

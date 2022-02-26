@@ -13,7 +13,6 @@
 // }
 
 void Request::handle_delete(char *msg){
-// TO DO change in order to delete elt in vector
     std::string file = this->get_file(msg);
     if (remove(file.c_str()) != 0)
         this->set_error(500);
@@ -163,7 +162,6 @@ void Request::extract_data_post(std::string mess, std::vector<std::string> cat){
             if (key == "cat")
                 cat.push_back(value);
             this->response.append("200 OK");
-// TO DO create struct or class to return with elts from list
             return ;
         }
         std::string value = content.substr(key.size() + 1, stop - (key.size() + 1));
@@ -249,8 +247,6 @@ std::string Request::get_file(char *msg){
     int i = 4;
     while (msg[i] != ' ')
         i++;
-// start at 4 to get rid of GET, then search end of file name and extract
-// TO DO parse before to be sure to start at the right place
     std::string mess = &msg[5];
     return mess.substr(0, i - 5);
 }
