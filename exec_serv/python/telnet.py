@@ -62,7 +62,7 @@ timeout = 100
 
 # cat=Ivitch&enfant=bebe&cat=Lolilol"""
 
-raw = """DELETE / HTTP/1.2
+raw = """PUT / HTTP/1.1
 Content-Type: multipart/form-data
 Content-Length: 151;boundary="hibourigolo"
 

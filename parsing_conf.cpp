@@ -729,9 +729,9 @@ serverConf start_conf(char *str)
     ret = (ret) ? conf.checkMissing() : 0;
     ret = (ret) ? conf.checkNegValues() : 0;
     //clé valeurs
-    //conf.printMap();
+    conf.printMap();
     //pour un serveur, récupérer toutes les locations ex: server1
-    size_t x = 0;
+    /*size_t x = 0;
     size_t y = 0;
     size_t z = 0;
     while (x < conf.http.size())
@@ -761,7 +761,7 @@ serverConf start_conf(char *str)
         std::cout << "*************" << std::endl;
         std::cout << std::endl;
         x++;
-    }
+    }*/
     //is valid ?
     conf._valid = ret;
     if (conf._valid)
