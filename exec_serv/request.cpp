@@ -169,9 +169,12 @@ void first_dispatch(char *msg, Request *r){
         fill_request_basic(msg, 3, r);
         fill_request_post(msg, r);
     }
-    else if (msg == NULL)
+    else if (msg == NULL){
         r->error_type = 400;
-    else
+        r->status_is_finished = true;
+    }
+    else{
         r->error_type = 405;
-    // return r;
+        r->status_is_finished = true;
+    }
 }

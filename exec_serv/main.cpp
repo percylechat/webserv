@@ -153,6 +153,7 @@ int compare_path(std::string root, std::string page){
 }
 
 void confirm_used_server(Bundle_for_response bfr, serverConf conf){
+    std::cout << "check" << std::endl;
     if (conf.http.data()[bfr.specs]["server"]["root"].size() != 1){
         std::size_t l = 1;
         int best = compare_path(conf.http.data()[bfr.specs]["server"]["root"][0], bfr.re.page);
@@ -184,6 +185,7 @@ void confirm_used_server(Bundle_for_response bfr, serverConf conf){
         }
         j++;
     }
+    std::cout << "check2" << std::endl;
 // TO DO here?
 //     Define a directory or a file from where the file should be searched (for example,
 // if url /kapouet is rooted to /tmp/www, url /kapouet/pouic/toto/pouet is
@@ -235,7 +237,8 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
         unsigned int i = 0;
         while (i != bfr.size() && bfr[i].fd_read != fd)
             i++;
-        bfr[i].init_re();
+//TO DO clear request or delete
+        // bfr[i].init_re();
         close(sock[0].fd_sock);
     }
     else if (event->events & EPOLLOUT){
@@ -245,7 +248,7 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
             i++;
         int ret;
         std::string content = get_response(bfr[i], conf);
-        std::cout << content << std::endl;
+        std::cout << "response= " << content << std::endl;
         ret = send(sock[0].fd_sock, content.c_str(), content.size(), 0);
         if (ret == 0){
             std::cout << "MT response" << std::endl;

@@ -77,7 +77,7 @@ Content-Disposition: form-data; name="test"; filename="example.txt"
 raw_byte = str.encode(raw)
 with telnetlib.Telnet(host, port, timeout) as session:
     session.write(raw_byte)
-    output = session.read_until(b"", timeout)
+    output = session.read_until(b"done", timeout)
     session.close()
     print(output)
     print("Done")
