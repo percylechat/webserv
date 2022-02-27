@@ -29,6 +29,13 @@ bool get_content_type(std::string file){
     return false;
 }
 
+std::string get_query(std::string page){
+    std::size_t test = page.find_first_of("?");
+    if (test == page.npos)
+        return "";
+    return page.substr(test, page.size() - test);
+}
+
 void fill_request_basic(char *msg, int n, Request *r){
     int i;
     int j;
@@ -51,6 +58,7 @@ void fill_request_basic(char *msg, int n, Request *r){
     r->page = mess.substr(i, j - i);
     std::cout << "page " << r->page << std::endl;
     r->is_cgi = get_content_type(r->page);
+    r->query = get_query(r->page);
     j += 1;
     i = j;
     while (msg[i] != ' ' && msg[i] != '\n' && msg[i] != '\r')
@@ -94,7 +102,13 @@ void classic_post(std::string mess, Request *r){
 
 void chunked_post(std::string mess, Request *r){
     r->status_is_finished = false;
-    (void)mess;
+    std::size_t deb = mess.find("\r\n\r\n") + 4;
+    r->body = mess.substr(deb, mess.size() - deb);
+    size_t j = 0;
+    while (j < r->body.size()){
+
+    deb = r->body.find_first_of('\r');
+    }
 }
 
 void fill_request_post(char *msg, Request *r){

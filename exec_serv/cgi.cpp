@@ -25,9 +25,8 @@ std::map<std::string, std::string> create_env(Bundle_for_response bfr, serverCon
     }
     cgi.insert(std::make_pair("PATH_INFO", bfr.re.page));
     cgi.insert(std::make_pair("PATH_TRANSLATED", bfr.re.page));
+    cgi.insert(std::make_pair("QUERY_STRING", bfr.re.query));
 	// cgi.insert(std::make_pair("DIR_PATH"], _loc.get_root();
-// need query url ?name=serge
-    // _env["QUERY_STRING"]		= _req.get_cgi();
 //Contient le chemin HTTP du script les données transmises dans l'appel.
 //Supposons que le script a l'adresse http://ma.page.net/cgi-bin/test.pl et qu'il a été appelé avec http://ma.page.net/cgi-bin/test.pl?User=Serge.
 //Alors la variable REQUEST_URI livre la valeur /cgi-bin/test.pl?User=Serge.
@@ -129,15 +128,16 @@ std::string handle_cgi(Bundle_for_response bfr, serverConf conf){
     std::cerr << "end" << std::endl;
 	if (pid == 0)
 		exit(0);
-// file name + path
+//TO DO file name + path
     std::basic_ifstream<char> fin("cgi/cgi_output");
 	std::ostringstream oss;
 	oss << fin.rdbuf();
 	std::string ret(oss.str());
     std::string end = "HTTP/1.1 200 OK \r\nContent-Length: " ;
-    end.append(itoa(ret.size()));
+    std::stringstream ss;
+    ss << ret.size();
+    end.append(ss.str());
     end.append("\r\n\r\n" + ret);
     std::cout << "ok" << ret << std::endl;
-    		// delete [] env;
 	return end;
 }

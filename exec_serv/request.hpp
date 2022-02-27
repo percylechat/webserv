@@ -46,6 +46,7 @@ class Request{
     long content_size; // taille du message
     std::string body; // message
     bool is_cgi;
+    std::string query;
 };
 
 class Bundle_for_response{
