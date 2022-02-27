@@ -152,6 +152,7 @@ int compare_path(std::string root, std::string page){
     return res;
 }
 
+//TO DO repmace root by location
 void confirm_used_server(Bundle_for_response bfr, serverConf conf){
     std::cout << "check" << std::endl;
     if (conf.http.data()[bfr.specs]["server"]["root"].size() != 1){
@@ -186,6 +187,7 @@ void confirm_used_server(Bundle_for_response bfr, serverConf conf){
         j++;
     }
     std::cout << "check2" << std::endl;
+    std::string absolut_path = conf.http.data()[bfr.specs]["server"]["root"][bfr.root];
 // TO DO here?
 //     Define a directory or a file from where the file should be searched (for example,
 // if url /kapouet is rooted to /tmp/www, url /kapouet/pouic/toto/pouet is
@@ -357,15 +359,20 @@ int launch(serverConf conf){
             i++;
         }
     }
-    // TO DO proper end of all sockets + ctrl C signal
     close(queue);
     return 0;
+}
+
+void signalHandler( int signum ) {
+   std::cout << "Closing Webserv\nGoodbye!" << std::endl;
+   exit(signum);  
 }
 
 int main(int argc, char *argv[]){
     if (argc != 2){
         std::cout << "ERROR, conf file missing" << std::endl;
     }
+    signal(SIGINT, signalHandler);
     serverConf conf = start_conf(argv[1]);
     if (!conf._valid){
         std::cout << "This configuration file is invalid" << std::endl;

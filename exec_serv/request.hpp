@@ -47,6 +47,7 @@ class Request{
     std::string body; // message
     bool is_cgi;
     std::string query;
+    std::string pure_content;
 };
 
 class Bundle_for_response{
@@ -83,6 +84,8 @@ class Bundle_for_response{
         this->re.content_size = 0;
         this->re.body = "";
         this->re.is_cgi = false;
+        this->re.query = "";
+        this->re.pure_content = "";
     }
 };
 

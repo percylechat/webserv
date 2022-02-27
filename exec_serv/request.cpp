@@ -102,12 +102,29 @@ void classic_post(std::string mess, Request *r){
 
 void chunked_post(std::string mess, Request *r){
     r->status_is_finished = false;
-    std::size_t deb = mess.find("\r\n\r\n") + 4;
-    r->body = mess.substr(deb, mess.size() - deb);
+    std::size_t deb;
+    if (r->pure_content == ""){
+        deb = mess.find("\r\n\r\n") + 4;
+        r->body = mess.substr(deb, mess.size() - deb);
+    }
+    else {
+        r->body = mess;
+        deb = 0;
+    }
+    std::string to_go = r->body;
     size_t j = 0;
     while (j < r->body.size()){
-
-    deb = r->body.find_first_of('\r');
+        deb = to_go.find_first_of('\r');
+        std::string hex = to_go.substr(0, deb);
+        int to_cover = (int)strtol(hex.c_str(), NULL, 16);
+        if (to_cover == 0){
+            r->status_is_finished = true;
+            return;
+        }
+        deb += 2;
+        r->pure_content.append(to_go.substr(deb, to_cover));
+        j += deb + to_cover + 4;
+        to_go = to_go.substr(deb + to_cover + 4, to_go.size() - (deb + to_cover + 4));
     }
 }
 
@@ -116,6 +133,7 @@ void fill_request_post(char *msg, Request *r){
     std::size_t type = mess.find("Content-Type: ") + 14;
     if (type == 14){
         r->error_type = 411;
+        r->status_is_finished = true;
         return ;
     }
     size_t end = type;
@@ -157,7 +175,9 @@ void fill_request_post(char *msg, Request *r){
 }
 
 void first_dispatch(char *msg, Request *r){
-    if (msg[0] == 'G' && msg[1] == 'E' && msg[2] == 'T' && msg[3] == ' '){
+    if (r->encoding == "chunked" && r->pure_content != "")
+        chunked_post(msg, r);
+    else if (msg[0] == 'G' && msg[1] == 'E' && msg[2] == 'T' && msg[3] == ' '){
         fill_request_basic(msg, 1, r);
         r->status_is_finished = true;
     }
