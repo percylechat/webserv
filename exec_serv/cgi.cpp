@@ -135,7 +135,7 @@ std::string handle_cgi(Bundle_for_response bfr, serverConf conf){
 	oss << fin.rdbuf();
 	std::string ret(oss.str());
     std::string end = "HTTP/1.1 200 OK \r\nContent-Length: " ;
-    end.append(itoa(ret.size()));
+    //end.append(itoa(ret.size()));
     end.append("\r\n\r\n" + ret);
     std::cout << "ok" << ret << std::endl;
     		// delete [] env;
