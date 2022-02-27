@@ -734,7 +734,39 @@ serverConf start_conf(char *str)
     ret = (ret) ? conf.checkMissing() : 0;
     ret = (ret) ? conf.checkNegValues() : 0;
     //clé valeurs
-    conf.printMap();
+    //conf.printMap();
+    //pour un serveur, récupérer toutes les locations ex: server1
+    size_t x = 0;
+    size_t y = 0;
+    size_t z = 0;
+    while (x < conf.http.size())
+    {
+        std::cout << "indice : [" << x << "]" << std::endl;
+        std::cout << "*************" << std::endl;
+        for (std::map< std::string, std::map< std::string, std::vector< std::string > > >::iterator it = conf.http.data()[x].begin(); it != conf.http.data()[x].end(); it++)
+        {
+            if (it->first != "server")
+            {
+                std::cout << "location " << z << " : [" << it->first << "]";
+                for (std::map< std::string, std::vector< std::string > >::iterator itk = conf.http.data()[x][it->first].begin(); itk != conf.http.data()[x][it->first].end(); itk++)
+                {
+                    //std::cout << " | clé [" << itk->first << "]";
+                    while (y < itk->second.size())
+                    {
+                        //std::cout << " | valeur [" << itk->second[y] << "]";
+                        y++;
+                    }
+                    y = 0;
+                }
+                std::cout << std::endl;
+            }
+            z++;
+        }
+        z = 0;
+        std::cout << "*************" << std::endl;
+        std::cout << std::endl;
+        x++;
+    }
     //is valid ?
     conf._valid = ret;
     if (conf._valid)

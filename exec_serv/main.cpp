@@ -63,11 +63,18 @@ std::string go_error(int err, serverConf conf, Bundle_for_response bfr){
         int errComp = atoi(conf.http.data()[bfr.specs]["server"]["error_page"][0].c_str());
         std::string url = conf.http.data()[bfr.specs]["server"]["error_page"][0];
 
-        if (errComp == err && url.find_first_not_of("\t\n\r\v\f ", 3) != std::string::npos)
+        std::cout << "error" << err << std::endl;
+        std::cout << "errComp" << errComp << std::endl;
+        std::cout << url << std::endl;
+        if (errComp == err && url.length() > 3)
         {
-            url = url.substr(url.find_first_not_of("\t\n\r\v\f ", 3), url.length() - url.find_first_not_of("\t\n\r\v\f ", 3));
-            std::ifstream is (url.c_str(), std::ifstream::binary);
+            std::string prefix("error/");
+            prefix += url.substr(0, 3);
+            prefix += ".jpeg";
+            std::cout << "url" << prefix << std::endl;
+            std::ifstream is (prefix.c_str(), std::ifstream::binary);
             if (is) {
+                std::cout << "la" << std::endl;
             //if (is)
             //std::cout << "all characters read successfully.";
             //else
@@ -91,19 +98,20 @@ std::string go_error(int err, serverConf conf, Bundle_for_response bfr){
             digit << length;
             std::string numberString(digit.str());
             if (err == 400)// for now for missing extension in file
-                response.append("400 BAD REQUEST Content-Type: " + findExtension(url) + "Content-Length: " + numberString + "\r\n\r\n" + content);
+                response.append("400 BAD REQUEST ");
             else if (err == 404)// for now, couldn't open file so does not exist
-                response.append("404 NOT FOUND Content-Type: " + findExtension(url) + "Content-Length: " + numberString + "\r\n\r\n" + content);
+                response.append("404 NOT FOUND ");
             else if (err == 405)// is not GET POST or DELETE
-                response.append("405 METHOD NOT ALLOWED Content-Type: " + findExtension(url) + "Content-Length: " + numberString + "\r\n\r\n" + content);
+                response.append("405 METHOD NOT ALLOWED ");
             else if (err == 411)// content lenght missing
-                response.append("411 LENGHT REQUIRED Content-Type: " + findExtension(url) + "Content-Length: " + numberString + "\r\n\r\n" + content);
+                response.append("411 LENGHT REQUIRED ");
             else if (err == 500)// For now, couldn't delete file
-                response.append("500 INTERNAL SERVER ERROR Content-Type: " + findExtension(url) + "Content-Length: " + numberString + "\r\n\r\n" + content);
+                response.append("500 INTERNAL SERVER ERROR ");
             else if (err == 505)// bad hhtp protocol version
-                response.append("505 HTTP VERSION NOT SUPPORTED Content-Type: " + findExtension(url) + "Content-Length: " + numberString + "\r\n\r\n" + content);
+                response.append("505 HTTP VERSION NOT SUPPORTED ");
+            response += "Content-Type: " + findExtension(url) + " Content-Length: " + numberString + "\r\n\r\n" + content;
+            is.close();
         }
-        is.close();
     }
     else
     {
