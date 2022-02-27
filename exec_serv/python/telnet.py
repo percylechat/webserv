@@ -14,7 +14,7 @@ import cv2
 
 
 host = "127.0.0.1"
-port = 8080
+port = 8082
 timeout = 100
 
 # with telnetlib.Telnet(host, port, timeout) as session:
@@ -62,7 +62,7 @@ timeout = 100
 
 # cat=Ivitch&enfant=bebe&cat=Lolilol"""
 
-raw = """POST / HTTP/1.1
+raw = """PUT / HTTP/1.1
 Content-Type: multipart/form-data
 Content-Length: 151;boundary="hibourigolo"
 
@@ -72,13 +72,12 @@ Content-Disposition: form-data; name="cat"
 hello
 --hibourigolo
 Content-Disposition: form-data; name="test"; filename="example.txt"
-
-nope"""
+"""
 
 raw_byte = str.encode(raw)
 with telnetlib.Telnet(host, port, timeout) as session:
     session.write(raw_byte)
-    output = session.read_until(b"done", timeout)
+    output = session.read_until(b"", timeout)
     session.close()
     print(output)
     print("Done")

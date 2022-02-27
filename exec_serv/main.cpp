@@ -49,6 +49,7 @@ std::string findExtension(std::string filepath)
 
 std::string go_error(int err, serverConf conf, Bundle_for_response bfr){
     std::string response = "HTTP/1.1 ";
+    std::cout << "ICI" << std::endl;
     if (conf.http.data()[bfr.specs]["server"]["error_page"].size() == 0)
     {
         //DO smthing
@@ -56,6 +57,7 @@ std::string go_error(int err, serverConf conf, Bundle_for_response bfr){
         // 404 NOT FOUND -> code d'erreur et explication
         // Content-Type: text/html Context-Lenght: 109\r\n\r\n -> type de page et taille fichier
         // ->fichier
+        std::cout << "no response" << std::endl;
     }
     else{
         int errComp = atoi(conf.http.data()[bfr.specs]["server"]["error_page"][0].c_str());
@@ -112,6 +114,7 @@ std::string go_error(int err, serverConf conf, Bundle_for_response bfr){
         return "";
     }
     }
+    std::cout << "response " << response << std::endl;
     return response;
 }
 
