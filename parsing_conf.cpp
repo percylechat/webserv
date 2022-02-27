@@ -110,8 +110,7 @@ int serverConf::findRelevantId(std::string content, std::vector< std::string > i
 
     while (i < ids.size())
     {
-        if (content.find(ids[i], pos) != std::string::npos && isspace(content.at(content.find(ids[i], pos) + ids[i].length())) \
-        && (!pos || (pos && isspace(content.at(content.find(ids[i], pos) - 1)))))
+        if (content.find(ids[i], pos) != std::string::npos && isspace(content.at(content.find(ids[i], pos) + ids[i].length())))
         {
             if (content.find(ids[i], pos) < prevIdPos || prevIdPos == 0)
             {
@@ -130,6 +129,13 @@ int serverConf::findRelevantId(std::string content, std::vector< std::string > i
         if (pos + i == content.length())
             return TRUE;
         return FALSE;
+    }
+    i = 0;
+    while (pos + i < prevIdPos)
+    {
+        if (!isspace(content.at(pos + i)))
+            return FALSE;
+        i++;
     }
     return TRUE;
 }
@@ -227,11 +233,13 @@ int serverConf::getLocation(std::string content, std::string key, size_t *pos, b
         locationName = locationName.substr(locationName.find_first_not_of("\t\n\r\v\f "), locationName.find_last_not_of("\t\n\r\v\f "));
     else
         return FALSE;
+    if (locationName.find("\t\n\r\v\f ") != std::string::npos)
+        return FALSE;
     setLocationId(locationName);
     if (content.find("{", *pos) != std::string::npos)
         blockLocation = getBlockLocation(&content[content.find("{", *pos) + 1]);
     else
-        return FALSE;    
+        return FALSE;
     if (isValidLocation(blockLocation, locationName) == FALSE)
         return FALSE;
     if (content.find("}", *pos) != std::string::npos)
@@ -275,7 +283,7 @@ int serverConf::isValidServer(std::string content)
                 i++;
             if (pos + i == content.length())
                 return TRUE;
-            else if (content.find(";", pos) != std::string::npos && content.find(";", pos) != pos && (isspace(content.at(content.find(";", pos) + 1)) || content.at(content.find(";", pos) + 1) == '}'))
+            else if (content.find(";", pos) != std::string::npos && content.find(";", pos) != pos && isspace(content.at(content.find(";", pos) + 1)))
             {
                 idx = content.find(";", pos);
                 if (validSeparator(_serverIds, content, pos + key.length(), idx) == FALSE)
@@ -411,12 +419,13 @@ int serverConf::topLevelDirectives(std::string content)
 
     while (pos < content.length())
     {
+        knownDirective = 0;
         while (pos < content.length() && isspace(content.at(pos)))
             pos++;
         i = 0;
         while (i < _directives.size())
         {
-            if (!content.compare(pos, _directives[i].length(), _directives[i]) && (!pos || (pos && isspace(content.at(content.find(_directives[i], pos) - 1)))))
+            if (!content.compare(pos, _directives[i].length(), _directives[i]))
             {
                 count[i]++;
                 knownDirective++;
@@ -446,11 +455,11 @@ int serverConf::topLevelDirectives(std::string content)
         }
     }
     i = 0;
-    while (i < 4)
+    while (i < 2)
     {
         if (count[i] > 1)
             return FALSE;
-        if (i == 1 && count[i] == 0)
+        if (count[i] == 0)
             return FALSE;
         i++;
     }
@@ -465,22 +474,37 @@ int serverConf::parseContent(std::string content)
         return FALSE;
     size_t pos = 0;
     std::string blockServer = "";
-    while (pos != content.length())
+    if (content.find("http", pos) != std::string::npos && (isspace(content.at(content.find("http", pos) + std::string("http").length())) \
+    || content.at(content.find("http", pos) + 1) == '{'))
     {
-        if ((pos = content.find("server", pos)) != std::string::npos)
+        pos = content.find("http", pos) + std::string("http").length();
+        if (content.find("{", pos) != std::string::npos)
+            pos = content.find("{", pos) + 1;
+        else
+            return FALSE;
+    }
+    else
+        return FALSE;
+    std::string block = getBlock(&content[pos]);
+    pos = 0;
+    while (pos < block.length())
+    {
+        if ((pos = block.find("server", pos)) != std::string::npos)
         {
             pos += std::string("server").length();
-            if (content.find("{", pos) != std::string::npos)
-                blockServer = getBlock(&content[content.find("{", pos) + 1]);
+            if (block.find("{", pos) != std::string::npos)
+                blockServer = getBlock(&block[block.find("{", pos) + 1]);
             else
                 return FALSE;
-            pos = content.find("{", pos) + blockServer.length();
+            pos = block.find("{", pos) + blockServer.length();
             setServerId();
             if (isValidServer(blockServer) == FALSE)
                 return FALSE;
         }
         else
             return TRUE;
+        if (block.find("location", pos) < block.find("server", pos))
+            return FALSE;
     }
     return TRUE;
 }
@@ -519,7 +543,6 @@ int serverConf::getData()
     std::cout << "Pour chaque serveur, récupérer son port (crea socket) " << std::endl;
     size_t i = 0;
     size_t j = 0;
-
     while (i < http.size())
     {
         while (j < http.data()[i]["server"]["listen"].size())
@@ -533,7 +556,6 @@ int serverConf::getData()
     std::cout << "Pour chaque serveur, récupérer son nbr max de connexion(taille) (crea socket) " << std::endl;
     i = 0;
     j = 0;
-
     while (i < http.size())
     {
         while (j < http.data()[i]["server"]["client_max_body_size"].size())
@@ -547,7 +569,6 @@ int serverConf::getData()
     std::cout << "Pour chaque serveur, recupérer son nom (check socket) " << std::endl;
     i = 0;
     j = 0;
-
     while (i < http.size())
     {
         while (j < http.data()[i]["server"]["server_name"].size())
@@ -561,7 +582,6 @@ int serverConf::getData()
     std::cout << "pour un serveur, recupere le port (gestion requete) " << std::endl;
     i = 2; //index du serveur;
     j = 0;
-
     while (j < http.data()[i]["server"]["listen"].size())
     {
         std::cout << http.data()[i]["server"]["listen"][j] << std::endl;
@@ -570,7 +590,6 @@ int serverConf::getData()
     std::cout << "pour un serveur, recuperer error page(gestion requete) " << std::endl;
     i = 0; //index du serveur;
     j = 0;
-
     while (j < http.data()[i]["server"]["error_page"].size())
     {
         std::cout << http.data()[i]["server"]["error_page"][j] << std::endl;
@@ -579,7 +598,6 @@ int serverConf::getData()
     std::cout << "pour un serveur, recuperer  la ou les roots (gestion requete) " << std::endl;
     i = 0; //index du serveur;
     j = 0;
-
     while (j < http.data()[i]["server"]["root"].size())
     {
         std::cout << http.data()[i]["server"]["root"][j] << std::endl;
@@ -590,7 +608,6 @@ int serverConf::getData()
     j = 0;
     std::map< std::string, std::map< std::string, std::vector< std::string > > >::iterator it = http.data()[i].begin();
     std::map< std::string, std::map< std::string, std::vector< std::string > > >::iterator ite = http.data()[i].end();
-
     for(; it != ite; it++)
     {
         if (it->first == "server")
@@ -653,6 +670,8 @@ int serverConf::checkNegValues()
 {
     size_t i = 0;
     size_t j = 0;
+    int portNb = 0;
+    size_t index = 0;
 
     if (http.size() == 0)
         return FALSE;
@@ -662,10 +681,15 @@ int serverConf::checkNegValues()
         {
             while (j < http.data()[i]["server"]["listen"].size())
             {
-                if (atoi(http.data()[i]["server"]["listen"][j].c_str()) < 0)
+                portNb = 0;
+                index = 0;
+                if (http.data()[i]["server"]["listen"][j].rfind(":", http.data()[i]["server"]["listen"][j].length()) != std::string::npos)
+                    index = http.data()[i]["server"]["listen"][j].rfind(":", http.data()[i]["server"]["listen"][j].length()) + 1;
+                portNb = atoi(http.data()[i]["server"]["listen"][j].substr(index, http.data()[i]["server"]["listen"][j].length() - index).c_str());
+                if (!(portNb > 0 && portNb <= 65535))
                 {
-                    std::cout << "server " << i << " invalid port - negative number" << std::endl;
-                        return FALSE;
+                    std::cout << "server " << i << " invalid port" << std::endl;
+                    return FALSE;
                 }
                 j++;
             }
