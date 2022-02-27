@@ -641,6 +641,7 @@ int serverConf::checkMissing()
 {
     size_t i = 0;
     size_t j = 1;
+    size_t isRoot = 0;
 
     if (http.size() == 0)
         return FALSE;
@@ -655,6 +656,26 @@ int serverConf::checkMissing()
         {
             std::cout << "no location in server " << i << std::endl;
             return FALSE;
+        }
+        else
+        {
+            for (std::map< std::string, std::map< std::string, std::vector< std::string > > >::iterator it = http.data()[i].begin(); it != http.data()[i].end(); it++)
+            {
+                if (it->first != "server")
+                {
+                    for (std::map< std::string, std::vector< std::string > >::iterator itk = http.data()[i][it->first].begin(); itk != http.data()[i][it->first].end(); itk++)
+                    {
+                        if (itk->first == "root")
+                            isRoot = 1;
+                    }
+                    if (!isRoot)
+                    {
+                        std::cout << "missing root in location" << std::endl;
+                        return FALSE;
+                    }
+                }
+                isRoot = 0;
+            }
         }
         i++;
     }
