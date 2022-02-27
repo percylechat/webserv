@@ -651,11 +651,6 @@ int serverConf::checkMissing()
             std::cout << "server " << i << " listen/port missing" << std::endl;
             return FALSE;
         }
-        if (http.data()[i]["server"]["root"].empty())
-        {
-            std::cout << "server " << i << " root missing" << std::endl;
-            return FALSE;
-        }
         if (j == http.data()[i].size())
         {
             std::cout << "no location in server " << i << std::endl;
