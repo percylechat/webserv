@@ -25,12 +25,15 @@ timeout = 100
 # Content-Lenght: 22 \r\n\r
 # hello bebe chat mignon
 # """
+
 #chunked encoding upload
 # raw = """GET /ugly_cat/merde.jpg HTTP/1.1
+# raw = """POST / HTTP/1.1
 # Host: 127.0.0.1:8082
 # Content-Type: text/plain
 # filename= "hello.txt"
 # Transfer-Encoding: chunked\r\n\r
+<<<<<<< HEAD
 # 26\r\nVoici les données du premier morceau\r\n\r
 # 1C\ret voici un second morceau\r\n\r\n
 # 20\ret voici deux derniers morceaux \r\n
@@ -245,6 +248,39 @@ timeout = 100
 # 0\r\r\n
 # """
 # 500 INTERNAL SERVER ERROR - ERROR PAGE NOT FOUND IN CONF FILE
+=======
+# 26\r\nVoici les donnees du premier morceau\r\n\r
+# 1C\ret voici un second morceau\r\n\r\n
+# 0\r\r\n
+# """
+
+#error method
+# raw = """PUT / HTTP/1.1
+# Host: 127.0.0.1:8082
+# Content-Type: text/plain
+# filename= "test.txt"
+# Content-Lenght: 22 \r\n\r
+# hello bebe chat mignon
+# """
+
+#error content lenght
+raw = """POST / HTTP/1.1
+Host: 127.0.0.1:8082
+Content-Type: text/plain
+<<<<<<< HEAD
+filename= "test.txt"\r\n\r
+hello bebe chat mignon
+=======
+filename= "hello.txt"
+Transfer-Encoding: chunked\r\n\r
+26\r\nVoici les données du premier morceau\r\n\r
+1C\ret voici un second morceau\r\n\r\n
+20\ret voici deux derniers morceaux \r\n
+12\r\sans saut de ligne\r\n
+0\r\r\n
+>>>>>>> a79334d6c75fc4d3b30849ac582d6bd87ff8ca45
+"""
+>>>>>>> d23dd2223622a9c200a0915303924be34a8b5571
 
 raw_byte = str.encode(raw)
 with telnetlib.Telnet(host, port, timeout) as session:

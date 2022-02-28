@@ -64,7 +64,7 @@ std::string handle_cgi(Bundle_for_response bfr, serverConf conf){
     fd_save[0] = dup(STDIN_FILENO);
     fd_save[1] = dup(STDOUT_FILENO);
     std::string name = "cgi_output";
-    std::string te = bfr.absolut_path.substr(0, bfr.absolut_path.find_last_of("/"));
+    std::string te = bfr.absolut_path.substr(1, bfr.absolut_path.find_last_of("/"));
     if (pipe(pipe_fd))
         exit(EXIT_FAILURE);
     pid = fork();
@@ -75,7 +75,12 @@ std::string handle_cgi(Bundle_for_response bfr, serverConf conf){
         char **env = go_env(cgi);
         // std::string te = conf.http.data()[bfr.specs]["server"]["root"][bfr.specs];
         chdir(te.c_str());
-        std::cout << "ping" << bfr.re.page.c_str() << std::endl;
+
+ char tmp[256];
+    getcwd(tmp, 256);
+    std::cout << "Current working directory: " << tmp << std::endl;
+
+        std::cout << "ping cgi" << bfr.re.page.c_str() << "path" << te << std::endl;
 		args[0] = (char*)bfr.re.page.c_str();
 		args[1] = NULL;
 
@@ -102,6 +107,7 @@ std::string handle_cgi(Bundle_for_response bfr, serverConf conf){
 		close(fd_tmp);
         std::cerr << "im ok" << std::endl;
 		close(pipe_fd[0]);
+        delete [] env;
 		exit(0);
 	}
 	else{
@@ -125,11 +131,11 @@ std::string handle_cgi(Bundle_for_response bfr, serverConf conf){
 	std::ostringstream oss;
 	oss << fin.rdbuf();
 	std::string ret(oss.str());
-    std::string end = "HTTP/1.1 200 OK \r\nContent-Length: " ;
+    std::string end = "HTTP/1.1 200 OK \r\nContent-Type: text/html Content-Length: " ;
     std::stringstream ss;
-    ss << ret.size();
+    ss << ret.size() + 23;
     end.append(ss.str());
-    end.append("\r\n\r\n" + ret);
+    end.append("\r\n\r\n<html><body>" + ret + "</body></html>");
     std::cout << "ok" << ret << std::endl;
 	return end;
 }
