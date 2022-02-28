@@ -15,6 +15,9 @@ class Request{
         this->content_size = 0;
         this->body = "";
         this->is_cgi = false;
+        std::string query = "";
+        std::string pure_content = "";
+        std::string filename = "";
     }
     Request& operator=( const Request & one){
         this->type = one.type;
@@ -29,6 +32,9 @@ class Request{
         this->content_size = one.content_size;
         this->body = one.body;
         this->is_cgi = one.is_cgi;
+        this->query = one.query;
+        this->pure_content = one.pure_content;
+        this->filename = one.filename;
         return (*this);
     }
     Request( const Request &one ){
