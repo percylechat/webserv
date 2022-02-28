@@ -62,13 +62,11 @@ timeout = 100
 
 # cat=Ivitch&enfant=bebe&cat=Lolilol"""
 
-raw = """PUT / HTTP/1.1
+raw = """POST / HTTP/1.1
 Content-Type: multipart/form-data
-Content-Length: 151;boundary="hibourigolo"
-
+Content-Length: 151;
 --hibourigolo
 Content-Disposition: form-data; name="cat"
-
 hello
 --hibourigolo
 Content-Disposition: form-data; name="test"; filename="example.txt"
