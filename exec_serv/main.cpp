@@ -75,31 +75,16 @@ std::string go_error(int err, serverConf conf, Bundle_for_response bfr)
     }
     std::cout << "code 1: " << err << std::endl;
     std::cout << "code 2: " << errComp << std::endl;
-    int length = 0;
-    char *buffer = NULL;
-    std::string content = "";
     std::string numberString = "";
     prefix += url;
     prefix += ".jpeg";
-    std::ifstream is (prefix.c_str(), std::ifstream::binary);
-    if (is)
-    {
-        is.seekg(3, is.end);
-        length = is.tellg();
-        is.seekg(3, is.beg);
-        //In this example, seekg is used to move the position to the end of the file, and then back to the beginning.
-        if (length != -1)
-        {
-            buffer = new char[length];
-            is.read(buffer,length);
-            content = std::string(buffer, length);
-            delete [] buffer;
-            std::ostringstream digit;
-            digit << length;
-            numberString = digit.str();
-        }
-        is.close();
-    }
+    std::basic_ifstream<char> fs(prefix.c_str());
+    std::ostringstream oss;
+    oss << fs.rdbuf();
+    std::string content(oss.str());
+    std::ostringstream digit;
+    digit << content.size();
+    numberString = digit.str();
     if (err == 400)// for now for missing extension in file
         response.append("400 BAD REQUEST ");
     else if (err == 404)// for now, couldn't open file so does not exist
@@ -210,6 +195,8 @@ std::string go_post_check(Bundle_for_response bfr, serverConf conf)
 
 std::string handle_delete(Bundle_for_response bfr, serverConf conf){
     std::string file = bfr.absolut_path;
+    if (file.length() && file.find("/", 0) == 0)
+        file = file.substr(1, file.length() - 1);
     std::string response = "HTTP/1.1 200 OK";
     if (remove(file.c_str()) != 0)
         return go_error((bfr.re.error_type = 500), conf, bfr);
@@ -219,33 +206,19 @@ std::string handle_delete(Bundle_for_response bfr, serverConf conf){
 std::string handle_get(Bundle_for_response bfr, serverConf conf)
 {
     std::string response = "HTTP/1.1 200 OK ";
-    int length = 0;
-    char *buffer = NULL;
-    std::string content = "";
     std::string numberString = "";
     std::string url = bfr.absolut_path;
     if (url.length() && url.find("/", 0) == 0)
         url = url.substr(1, url.length() - 1);
-    std::ifstream is (url.c_str(), std::ifstream::binary);
-    if (is)
-    {
-        is.seekg(3, is.end);
-        length = is.tellg();
-        is.seekg(3, is.beg);
-        //In this example, seekg is used to move the position to the end of the file, and then back to the beginning.
-        if (length != -1)
-        {
-            buffer = new char[length];
-            is.read(buffer,length);
-            content = std::string(buffer, length);
-            delete [] buffer;
-            std::ostringstream digit;
-            digit << length;
-            numberString = digit.str();
-        }
-        is.close();
+    std::basic_ifstream<char> fs(url.c_str());
+    std::ostringstream oss;
+    oss << fs.rdbuf();
+    std::string content(oss.str());
+    std::ostringstream digit;
+    digit << content.size();
+    numberString = digit.str();
+    if (content.size())
         return response += "Content-Type: " + findExtension(bfr.absolut_path) + " Content-Length: " + numberString + "\r\n\r\n" + content;
-    }
     return go_error((bfr.re.error_type = 404), conf, bfr);
 }
 

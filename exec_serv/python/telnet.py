@@ -62,7 +62,7 @@ timeout = 100
 
 # cat=Ivitch&enfant=bebe&cat=Lolilol"""
 
-raw = """DELETE /ugly_cat/mdr.jpg HTTP/1.1
+raw = """GET /ugly_cat/chat.jpg HTTP/1.1
 Host: 127.0.0.1:8082
 Content-Type: text/plain
 filename= "test.txt
