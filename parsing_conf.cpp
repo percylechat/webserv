@@ -182,6 +182,8 @@ int serverConf::isValidLocation(std::string content, std::string locationName)
         {
             pos = content.find(key, pos);
             category = "location " + locationName;
+            if (locationName.find_first_of("\t\n\r\v\f ", 0) != std::string::npos)
+                return FALSE;
         }
         while (pos + i < content.length() && isspace(content.at(pos + i)))
             i++;

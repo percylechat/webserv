@@ -227,8 +227,13 @@ std::string go_post_check(Bundle_for_response bfr, serverConf conf){
 
 std::string handle_delete(Bundle_for_response bfr, serverConf conf){
     std::string file = bfr.absolut_path;
+    size_t i = 0;
     if (file.length() && file.find("/", 0) == 0)
-        file = file.substr(1, file.length() - 1);
+    {
+        while (i < file.length() && file.at(i) == '/')
+            i++;
+        file = file.substr(i, file.length() - i);
+    }
     std::string response = "HTTP/1.1 200 OK";
     if (remove(file.c_str()) != 0)
         return go_error((bfr.re.error_type = 500), conf, bfr);
@@ -240,8 +245,13 @@ std::string handle_get(Bundle_for_response bfr, serverConf conf)
     std::string response = "HTTP/1.1 200 OK ";
     std::string numberString = "";
     std::string url = bfr.absolut_path;
+    size_t i = 0;
     if (url.length() && url.find("/", 0) == 0)
-        url = url.substr(1, url.length() - 1);
+    {
+        while (i < url.length() && url.at(i) == '/')
+            i++;
+        url = url.substr(i, url.length() - i);
+    }
     std::basic_ifstream<char> fs(url.c_str());
     std::ostringstream oss;
     oss << fs.rdbuf();
