@@ -267,10 +267,9 @@ Transfer-Encoding: chunked\r\n\r
 # raw = """POST / HTTP/1.1
 # Host: 127.0.0.1:8082
 # Content-Type: text/plain
-# <<<<<<< HEAD
 # filename= "test.txt"\r\n\r
 # hello bebe chat mignon
-# =======
+
 # filename= "hello.txt"
 # Transfer-Encoding: chunked\r\n\r
 # 26\r\nVoici les données du premier morceau\r\n\r
@@ -278,9 +277,6 @@ Transfer-Encoding: chunked\r\n\r
 # 20\ret voici deux derniers morceaux \r\n
 # 12\r\sans saut de ligne\r\n
 # 0\r\r\n
-# >>>>>>> a79334d6c75fc4d3b30849ac582d6bd87ff8ca45
-# """
-# >>>>>>> d23dd2223622a9c200a0915303924be34a8b5571
 
 raw_byte = str.encode(raw)
 with telnetlib.Telnet(host, port, timeout) as session:

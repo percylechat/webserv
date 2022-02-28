@@ -142,21 +142,22 @@ std::string go_directory(Bundle_for_response bfr, serverConf conf){
         if ( s.st_mode & S_IFDIR ){
             if (bfr.re.type == "DELETE")
                 return go_error(403, conf, bfr);
-            std::cout << "auto " << conf.http.data()[bfr.specs][bfr.loc]["autoindex"][0] << std::endl;
-            if (conf.http.data()[bfr.specs][bfr.loc]["autoindex"][0] == "1"){
-                struct dirent *dp;
-                DIR *dirp = opendir(temp.c_str());
-                while ((dp = readdir(dirp)) != NULL){
-                    std::cout << "ping" << dp->d_name << std::endl;
-                    body.append(dp->d_name);
-                    body.append("\n");
+            if (conf.http.data()[bfr.specs][bfr.loc]["autoindex"].size() > 0){
+                if (conf.http.data()[bfr.specs][bfr.loc]["autoindex"][0] == "1"){
+                    struct dirent *dp;
+                    DIR *dirp = opendir(temp.c_str());
+                    while ((dp = readdir(dirp)) != NULL){
+                        std::cout << "ping" << dp->d_name << std::endl;
+                        body.append(dp->d_name);
+                        body.append("\n");
+                    }
+                    (void)closedir(dirp);
+                    response.append(body);
                 }
-                (void)closedir(dirp);
-                response.append(body);
             }
+            return go_error(403, conf, bfr);
         }
         else{
-            std::cout << "is file " << std::endl;
             return response;
         }
     }
@@ -461,7 +462,7 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
     }
     else if (event->events & EPOLLIN){
         unsigned int i = 0;
-        while (bfr[i].fd_accept != fd){
+        while (i < bfr.size() && (bfr[i].fd_accept != fd)){
             std::cout << fd << bfr[i].fd_accept << std::endl;
             i++;
         }
@@ -517,7 +518,7 @@ int launch(serverConf conf){
                     std::cout << "Error setting nonblocking socket" << std::endl;
                     return 1;
                 }
-                check = serv[i].server_listening(3); // only 2 waiting conneions authorized so the server is not overcharged
+                check = serv[i].server_listening(5); // only 5 waiting conneions authorized so the server is not overcharged
                 if (check != NULL){
                     std::cout << check << std::endl;
                     return 1;
