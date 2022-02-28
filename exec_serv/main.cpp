@@ -67,22 +67,29 @@ std::string go_error(int err, serverConf conf, Bundle_for_response bfr)
     size_t i = 0;
     size_t j = 0;
     std::string url = "";
-    std::string prefix("error/");
-    const char *codes[6] = { "400", "404", "405", "411", "500", "505" };
-    while (j < 6)
+    if (conf.http.data()[bfr.specs][bfr.loc]["root"][0].size())
+        url += conf.http.data()[bfr.specs][bfr.loc]["root"][0];
+    while (i < conf.http.data()[bfr.specs]["server"]["error_page"].size())
+    {
+        if (conf.http.data()[bfr.specs]["server"]["error_page"][i].length() >= 3 && atoi(conf.http.data()[bfr.specs]["server"]["error_page"][i].substr(0, 3).c_str()) == err \
+        && conf.http.data()[bfr.specs]["server"]["error_page"][i].find_first_not_of("\t\n\r\v\f ", 3) != std::string::npos)
+            url += conf.http.data()[bfr.specs]["server"]["error_page"][i].substr(conf.http.data()[bfr.specs]["server"]["error_page"][i].find_first_not_of("\t\n\r\v\f ", 3), \
+            conf.http.data()[bfr.specs]["server"]["error_page"][i].length() - conf.http.data()[bfr.specs]["server"]["error_page"][i].find_first_not_of("\t\n\r\v\f ", 3));
+        i++;
+    }
+    std::cout << "err" << err << std::endl;
+    const char *codes[8] = { "400", "403", "404", "405", "411", "413", "500", "505" };
+    while (j < 8)
     {
         if (err == atoi(codes[j]))
-        {
             errComp = atoi(codes[j]);
-            url = codes[j];
-        }
         j++;
     }
-    std::cout << "code 1: " << err << std::endl;
-    std::cout << "code 2: " << errComp << std::endl;
     std::string numberString = "";
-    prefix += url;
-    prefix += ".jpeg";
+    std::string prefix = url;
+    if (prefix.find_first_not_of("/", 0) != std::string::npos)
+        prefix = prefix.substr(prefix.find_first_not_of("/", 0), prefix.length() - prefix.find_first_not_of("/", 0));
+    std::cout << "prefix" << prefix << std::endl;
     std::basic_ifstream<char> fs(prefix.c_str());
     std::ostringstream oss;
     oss << fs.rdbuf();
@@ -91,28 +98,24 @@ std::string go_error(int err, serverConf conf, Bundle_for_response bfr)
     digit << content.size();
     numberString = digit.str();
     if (err == 400)// for now for missing extension in file
-        response.append("400 BAD REQUEST ");
+        response.append("400 BAD REQUEST");
+    else if (err == 403)
+        response.append("403 FORBIDDEN");
     else if (err == 404)// for now, couldn't open file so does not exist
-        response.append("404 NOT FOUND ");
+        response.append("404 NOT FOUND");
     else if (err == 405)// is not GET POST or DELETE
-        response.append("405 METHOD NOT ALLOWED ");
+        response.append("405 METHOD NOT ALLOWED");
     else if (err == 411)// content lenght missing
-        response.append("411 LENGHT REQUIRED ");
+        response.append("411 LENGTH REQUIRED");
+    else if (err == 413) // client_max_body_size : Sets the maximum allowed size of the client request body, specified in the “Content-Length” request header field. If the size in a request exceeds the configured value, the 413 (Request Entity Too Large) error is returned to the client. Setting size to 0 disables checking of client request body size.
+        response.append("413 PAYLOAD TOO LARGE");
     else if (err == 500)// For now, couldn't delete file
-        response.append("500 INTERNAL SERVER ERROR ");
+        response.append("500 INTERNAL SERVER ERROR");
     else if (err == 505)// bad hhtp protocol version
-        response.append("505 HTTP VERSION NOT SUPPORTED ");
-    i = 0;
-    bool foundErrorPage = 0;
-    while (i < conf.http.data()[bfr.specs]["server"]["error_page"].size())
-    {
-        if (conf.http.data()[bfr.specs]["server"]["error_page"][i].length() >= 3 && atoi(conf.http.data()[bfr.specs]["server"]["error_page"][i].substr(0, 3).c_str()) == err)
-            foundErrorPage = 1;
-        i++;
-    }
-    std::cout << "found" << foundErrorPage << std::endl;
-    if (foundErrorPage)
-        response += "Content-Type: " + findExtension(prefix) + " Content-Length: " + numberString + "\r\n\r\n" + content;
+        response.append("505 HTTP VERSION NOT SUPPORTED");
+    std::cout << "content size" << content.size() << std::endl;
+    if (content.size())
+        response += " Content-Type: " + findExtension(prefix) + " Content-Length: " + numberString + "\r\n\r\n" + content;
     return response;
 }
 
@@ -274,7 +277,7 @@ int compare_path(std::string root, std::string page){
 }
 
 Bundle_for_response confirm_used_server(Bundle_for_response bfr, serverConf conf){
-    if (conf.http.data()[bfr.specs].size() != 2){
+    if (conf.http.data()[bfr.specs].size() > 1){
         std::map<std::string,std::map<std::string,std::vector<std::string> > >::iterator it = conf.http.data()[bfr.specs].begin();
         int best = 0;
         int i = 0;
