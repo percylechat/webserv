@@ -62,22 +62,12 @@ timeout = 100
 
 # cat=Ivitch&enfant=bebe&cat=Lolilol"""
 
-raw = """POST / HTTP/1.1
-<<<<<<< HEAD
+raw = """DELETE /ugly_cat/mdr.jpg HTTP/1.1
 Host: 127.0.0.1:8082
 Content-Type: text/plain
 filename= "test.txt
 Content-Lenght: 22 \r\n\r
 hello bebe chat mignon
-=======
-Content-Type: multipart/form-data
-Content-Length: 151;
---hibourigolo
-Content-Disposition: form-data; name="cat"
-hello
---hibourigolo
-Content-Disposition: form-data; name="test"; filename="example.txt"
->>>>>>> 086015b6659f6657ed3ebfa45082d8a2b327fbb5
 """
 
 raw_byte = str.encode(raw)
