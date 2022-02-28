@@ -15,6 +15,7 @@
 
 #include <dirent.h>
 #include <sys/types.h>
+#include <algorithm>
 
 #define MAX_EVENTS 5
 
@@ -142,8 +143,6 @@ std::string go_redirect(Bundle_for_response bfr, serverConf conf){
 }
 
 std::string go_directory(Bundle_for_response bfr, serverConf conf){
-    if (bfr.re.type == "DELETE")
-        return go_error(403, conf, bfr);
     std::string response = "";
     std::string body = "";
     std::string temp = bfr.absolut_path.substr(bfr.absolut_path.find_last_of("/") + 1, bfr.absolut_path.size() - bfr.absolut_path.find_last_of("/") + 1);
@@ -153,6 +152,8 @@ std::string go_directory(Bundle_for_response bfr, serverConf conf){
     if ( stat(temp.c_str(), &s) == 0 ){
             std::cout << "DIR 2" << std::endl;
         if ( s.st_mode & S_IFDIR ){
+            if (bfr.re.type == "DELETE")
+                return go_error(403, conf, bfr);
             std::cout << "auto " << conf.http.data()[bfr.specs][bfr.loc]["autoindex"][0] << std::endl;
             if (conf.http.data()[bfr.specs][bfr.loc]["autoindex"][0] == "1"){
                 struct dirent *dp;
@@ -205,11 +206,34 @@ std::string go_simple_upload(Bundle_for_response bfr, serverConf conf){
     return "HTTP/1.1 201 CREATED";
 }
 
-std::string go_post_check(Bundle_for_response bfr, serverConf conf)
-{
+std::string go_form_post(Bundle_for_response bfr, serverConf conf){
+    std::string response = "HTTP/1.1 ";
+    int j = std::count(bfr.re.query.c_str(), bfr.re.query.c_str() + bfr.re.query.size(), '&');
+    if (j == 0)
+        return go_error(400, conf, bfr);
+    int k = -1;
+    std::string content = bfr.re.query;
+    while (k < j){
+        std::string key = content.substr(0, content.find("="));
+        std::size_t stop = content.find_first_of(" \n&\r");
+        if (stop == content.npos){
+            std::string value = content.substr(key.size() + 1, content.size() - (key.size() + 1));
+            response.append("200 OK");
+            return response;
+        }
+        std::string value = content.substr(key.size() + 1, stop - (key.size() + 1));
+        content = content.substr(stop + 1, content.size() - (stop + 1));
+        k++;
+    }
+    return response.append("200 OK");
+}
+
+std::string go_post_check(Bundle_for_response bfr, serverConf conf){
     std::cout << "test4" << bfr.re.filename << std::endl;
     if (bfr.re.content_type != "multipart/form-data" && bfr.re.content_type != "application/x-www-form-urlencoded")
         return go_simple_upload(bfr, conf);
+    else
+        return go_form_post(bfr, conf);
     return "";
 }
 
@@ -255,7 +279,6 @@ std::string handle_get(Bundle_for_response bfr, serverConf conf)
 }
 
 std::string get_response(Bundle_for_response bfr, serverConf conf){
-            std::cout << "test3" << bfr.re.filename << std::endl;
     bfr.re.status_is_handled = true;
     std::string response = "HTTP/1.1 200 OK ";
     if (bfr.re.error_type != 200)
@@ -379,32 +402,6 @@ Bundle_for_response confirm_used_server(Bundle_for_response bfr, serverConf conf
     return bfr;
 }
 
-        // if (conf.http.data()[j]["server"]["listen"][0] == bfr.re.host_ip){
-        //     std::size_t k = 0;
-        //     int best = bfr.root;
-        //     while (k < conf.http.data()[j]["server"]["root"].size()){
-        //         int curr = compare_path(conf.http.data()[j]["server"]["root"][k], bfr.re.page);
-        //         if (curr > best){
-        //             best = curr;
-        //             bfr.root = k;
-        //             bfr.specs = j;
-        //         }
-        //         k++;
-        //     }
-        // }
-        // j++;
-            //     std::size_t l = 1;
-    //     int best = compare_path(conf.http.data()[bfr.specs]["server"]["root"][0], bfr.re.page);
-    //     while (l < conf.http.data()[bfr.specs]["server"]["root"].size()){
-    //         int curr = compare_path(conf.http.data()[bfr.specs]["server"]["root"][l], bfr.re.page);
-    //         if (curr > best){
-    //             best = curr;
-    //             bfr.root = l;
-    //         }
-    //         l++;
-    //     }
-    // }
-
 int check_conn(int fd_1, Socket *serv, int nbr){
     int i = 0;
     while (i < nbr){
@@ -419,8 +416,7 @@ int fd_in_queue(int fd, int queue){
     struct epoll_event event;
     event.events = EPOLLIN | EPOLLRDHUP;
     event.data.fd = fd;
-    if (epoll_ctl(queue, EPOLL_CTL_ADD, fd, &event))
-    {
+    if (epoll_ctl(queue, EPOLL_CTL_ADD, fd, &event)){
         close(fd);
         return -1;
     }
@@ -475,10 +471,6 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
                 return ;
             close(sock[0].fd_sock);
         }
-        // event->events = EPOLLIN;
-        // epoll_ctl(epoll_fd, EPOLL_CTL_MOD, sock[0].fd_sock, event);
-        // bfr[i].fd_accept = sock[0].fd_sock; // write?
-        // bfr[i].init_re();
         std::cout << "success" << std::endl;
     }
     else if (event->events & EPOLLIN){
@@ -497,10 +489,7 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
 // TO DO handle failed recv
             return ;
         first_dispatch(buffer, &(bfr[i].re));
-        std::cout << "test1" << bfr[i].re.filename << std::endl;
         bfr[i] = confirm_used_server(bfr[i], conf);
-                std::cout << "test2" << bfr[i].re.filename << std::endl;
-        std::cout << "request" << bfr[i].re.error_type << bfr[i].re.host_address << bfr[i].re.host_ip << std::endl;
         if (bfr[i].re.status_is_finished == true)
         {
             event->events = EPOLLOUT;
@@ -509,8 +498,7 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
         }
     }
     else
-        std::cout << "bug somewhere" << std::endl;
-    std::cout << "ping" << std::endl;
+        ;
     return ;
 }
 
@@ -566,11 +554,9 @@ int launch(serverConf conf){
         i++;
     }
     while (1){
-        std::cout << "hello" << std::endl;
         event_count = epoll_wait(queue, events, MAX_EVENTS, -1);
         i = 0;
         while (i < event_count){
-            std::cout << "hello" << std::endl;
             poll_handling(queue, events[i].data.fd, &events[i], serv, conf);
             i++;
         }
@@ -590,9 +576,9 @@ int main(int argc, char *argv[]){
     }
     signal(SIGINT, signalHandler);
     serverConf conf = start_conf(argv[1]);
-    // if (!conf._valid){
-    //     std::cout << "This configuration file is invalid" << std::endl;
-    //     return 1;
-    // }
+    if (!conf._valid){
+        std::cout << "This configuration file is invalid" << std::endl;
+        return 1;
+    }
     return launch(conf);
 }

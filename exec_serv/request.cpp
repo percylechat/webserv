@@ -126,14 +126,16 @@ void chunked_post(std::string mess, Request *r){
         deb = to_go.find_first_of('\r');
         std::string hex = to_go.substr(0, deb);
         int to_cover = (int)strtol(hex.c_str(), NULL, 16);
+        std::cout << "size to get" << hex << to_cover << std::endl;
         if (to_cover == 0){
             r->status_is_finished = true;
+            r->body = r->pure_content;
             return;
         }
-        deb += 2;
+        deb += hex.size() + 2;
         r->pure_content.append(to_go.substr(deb, to_cover));
-        j += deb + to_cover + 4;
-        to_go = to_go.substr(deb + to_cover + 4, to_go.size() - (deb + to_cover + 4));
+        j += deb + to_cover;
+        to_go = to_go.substr(deb + to_cover , to_go.size() - (deb + to_cover));
     }
 }
 

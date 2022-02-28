@@ -19,37 +19,39 @@ timeout = 100
 
 #classic post upload
 # raw = """POST / HTTP/1.1
-<<<<<<< HEAD
 # Host: 127.0.0.1:8082
 # Content-Type: text/plain
 # filename= "test.txt"
 # Content-Lenght: 22 \r\n\r
 # hello bebe chat mignon
 # """
+
 #chunked encoding upload
+# raw = """POST / HTTP/1.1
+# Host: 127.0.0.1:8082
+# Content-Type: text/plain
+# filename= "hello.txt"
+# Transfer-Encoding: chunked\r\n\r
+# 26\r\nVoici les donnees du premier morceau\r\n\r
+# 1C\ret voici un second morceau\r\n\r\n
+# 0\r\r\n
+# """
+
+#error method
+# raw = """PUT / HTTP/1.1
+# Host: 127.0.0.1:8082
+# Content-Type: text/plain
+# filename= "test.txt"
+# Content-Lenght: 22 \r\n\r
+# hello bebe chat mignon
+# """
+
+#error content lenght
 raw = """POST / HTTP/1.1
 Host: 127.0.0.1:8082
 Content-Type: text/plain
-filename= "hello.txt"
-Transfer-Encoding: chunked\r\n\r
-26\r\nVoici les données du premier morceau\r\n\r
-1C\ret voici un second morceau\r\n\r\n
-20\ret voici deux derniers morceaux \r\n
-12\r\sans saut de ligne\r\n
-0\r\r\n
-=======
-# Content-Type: application/x-www-form-urlencoded 
-# Content-Length: 34
-
-# cat=Ivitch&enfant=bebe&cat=Lolilol"""
-
-raw = """DELETE /ugly_cat/mdr.jpg HTTP/1.1
-Host: 127.0.0.1:8082
-Content-Type: text/plain
-filename= "test.txt
-Content-Lenght: 22 \r\n\r
+filename= "test.txt"\r\n\r
 hello bebe chat mignon
->>>>>>> 70691cf5e86d1e2ea84fada0ecc9f316c5336dbe
 """
 
 raw_byte = str.encode(raw)
