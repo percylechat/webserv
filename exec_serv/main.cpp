@@ -213,9 +213,51 @@ std::string go_post_check(Bundle_for_response bfr, serverConf conf)
     return "";
 }
 
+std::string handle_delete(Bundle_for_response bfr, serverConf conf){
+    std::string file = bfr.absolut_path;
+    std::string response = "HTTP/1.1 200 OK";
+    if (remove(file.c_str()) != 0)
+        return go_error((bfr.re.error_type = 500), conf, bfr);
+    return response;
+}
+
+std::string handle_get(Bundle_for_response bfr, serverConf conf)
+{
+    std::string response = "HTTP/1.1 200 OK ";
+    int length = 0;
+    char *buffer = NULL;
+    std::string content = "";
+    std::string numberString = "";
+    std::string url = bfr.absolut_path;
+    if (url.length() && url.find("/", 0) == 0)
+        url = url.substr(1, url.length() - 1);
+    std::ifstream is (url.c_str(), std::ifstream::binary);
+    if (is)
+    {
+        is.seekg(3, is.end);
+        length = is.tellg();
+        is.seekg(3, is.beg);
+        //In this example, seekg is used to move the position to the end of the file, and then back to the beginning.
+        if (length != -1)
+        {
+            buffer = new char[length];
+            is.read(buffer,length);
+            content = std::string(buffer, length);
+            delete [] buffer;
+            std::ostringstream digit;
+            digit << length;
+            numberString = digit.str();
+        }
+        is.close();
+        return response += "Content-Type: " + findExtension(bfr.absolut_path) + " Content-Length: " + numberString + "\r\n\r\n" + content;
+    }
+    return go_error((bfr.re.error_type = 404), conf, bfr);
+}
+
 std::string get_response(Bundle_for_response bfr, serverConf conf){
             std::cout << "test3" << bfr.re.filename << std::endl;
     bfr.re.status_is_handled = true;
+    std::string response = "HTTP/1.1 200 OK ";
     if (bfr.re.error_type != 200)
         return go_error(bfr.re.error_type, conf, bfr);
     std::cerr << "kikou" << std::endl;
@@ -228,10 +270,11 @@ std::string get_response(Bundle_for_response bfr, serverConf conf){
         return resp;
     if (bfr.re.type == "POST")
         return go_post_check(bfr, conf);
-    else{
-        std::string response = "HTTP/1.1 200 OK \r\n hello";
-        return response.c_str();
-    }
+    if (bfr.re.type == "DELETE")
+        return handle_delete(bfr, conf);
+    if (bfr.re.type == "GET")
+        return handle_get(bfr, conf);
+    return go_error((bfr.re.error_type = 405), conf, bfr);
 }
 
 int compare_path(std::string root, std::string page){

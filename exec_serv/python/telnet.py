@@ -19,6 +19,7 @@ timeout = 100
 
 #classic post upload
 # raw = """POST / HTTP/1.1
+<<<<<<< HEAD
 # Host: 127.0.0.1:8082
 # Content-Type: text/plain
 # filename= "test.txt"
@@ -36,6 +37,19 @@ Transfer-Encoding: chunked\r\n\r
 20\ret voici deux derniers morceaux \r\n
 12\r\sans saut de ligne\r\n
 0\r\r\n
+=======
+# Content-Type: application/x-www-form-urlencoded 
+# Content-Length: 34
+
+# cat=Ivitch&enfant=bebe&cat=Lolilol"""
+
+raw = """DELETE /ugly_cat/mdr.jpg HTTP/1.1
+Host: 127.0.0.1:8082
+Content-Type: text/plain
+filename= "test.txt
+Content-Lenght: 22 \r\n\r
+hello bebe chat mignon
+>>>>>>> 70691cf5e86d1e2ea84fada0ecc9f316c5336dbe
 """
 
 raw_byte = str.encode(raw)
