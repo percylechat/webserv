@@ -78,13 +78,12 @@ void fill_request_basic(char *msg, int n, Request *r){
 }
 
 std::string get_filename(std::string mess){
-    int file_start = mess.find("filename=\"") + 11;
+    int file_start = mess.find("filename= \"") + 11;
     if (file_start == 11)
         return "";
-    int file_end = file_start;
-    while (mess[file_end] != '\"')
-        file_end++;
-    std::string filename = mess.substr(file_start, file_end);
+    std::string temp = mess.substr(file_start, mess.size() - file_start);
+    std::string filename = temp.substr(0, temp.find_first_of("\""));
+    std::cout << "HERE FILENAME" << filename << std::endl;
     return filename;
 }
 
@@ -110,6 +109,7 @@ void classic_post(std::string mess, Request *r){
 
 void chunked_post(std::string mess, Request *r){
     r->status_is_finished = false;
+    r->filename = get_filename(mess);
     std::size_t deb;
     if (r->pure_content == ""){
         deb = mess.find("\r\n\r\n") + 4;
@@ -119,6 +119,7 @@ void chunked_post(std::string mess, Request *r){
         r->body = mess;
         deb = 0;
     }
+    std::cout << "check body to process" << r->body << std::endl;
     std::string to_go = r->body;
     size_t j = 0;
     while (j < r->body.size()){

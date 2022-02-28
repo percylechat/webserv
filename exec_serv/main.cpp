@@ -52,6 +52,11 @@ std::string findExtension(std::string filepath)
 
 std::string go_error(int err, serverConf conf, Bundle_for_response bfr)
 {
+
+// EN PLUS NOW error 413 PAYLOAD TOO LARGE
+// 403 FORBIDDEN
+
+
     std::string response = "HTTP/1.1 ";
         //DO smthing
         // si error page presente
@@ -122,7 +127,8 @@ std::string go_redirect(Bundle_for_response bfr, serverConf conf){
 }
 
 std::string go_directory(Bundle_for_response bfr, serverConf conf){
-//TO DO banb delete si directory
+    if (bfr.re.type == "DELETE")
+        return go_error(403, conf, bfr);
     std::string response = "";
     std::string body = "";
     std::string temp = bfr.absolut_path.substr(bfr.absolut_path.find_last_of("/") + 1, bfr.absolut_path.size() - bfr.absolut_path.find_last_of("/") + 1);
@@ -158,9 +164,12 @@ std::string go_directory(Bundle_for_response bfr, serverConf conf){
 }
 
 std::string go_simple_upload(Bundle_for_response bfr, serverConf conf){
+//TO DO si pas txt open binary
+    if (bfr.re.encoding == "chunked" && bfr.re.filename == "")
+        return "HTTP/1.1 202 ACCEPTED";
     std::string way = "";
     std::string te;
-    std::cout << "check post" << std::endl;
+    std::cout << "check post filename " << bfr.re.filename << std::endl;
     if (conf.http.data()[bfr.specs][bfr.loc]["upload_dir"].size() > 0)
         way.append(conf.http.data()[bfr.specs][bfr.loc]["upload_dir"][0]);
     if (bfr.absolut_path.size() > 1)
@@ -170,24 +179,20 @@ std::string go_simple_upload(Bundle_for_response bfr, serverConf conf){
     te.append(way);
     // chdir(te.c_str());
     te.append(bfr.re.filename);
+    if (bfr.re.body == "")
+        return "HTTP/1.1 204 NO CONTENT";
+    std::cout << "open file " << te << std::endl;
     std::ofstream fs;
-    fs.open(te.c_str());
-    // myfile << "Writing this to a file.\n";
-//   myfile.close();
-    
-    
-    // std::fstream fs;
-    // fs.open(bfr.re.filename.c_str(), std::fstream::out);
+    fs.open(bfr.re.filename.c_str());
     fs << bfr.re.body;
     std::cerr << bfr.re.filename.c_str() << bfr.re.body << std::endl;
-    // fs << bfr.re.body.rdbuf();
     fs.close();
-// TO DO error codes
     return "HTTP/1.1 201 CREATED";
 }
 
 std::string go_post_check(Bundle_for_response bfr, serverConf conf)
 {
+    std::cout << "test4" << bfr.re.filename << std::endl;
     if (bfr.re.content_type != "multipart/form-data" && bfr.re.content_type != "application/x-www-form-urlencoded")
         return go_simple_upload(bfr, conf);
     return "";
@@ -223,6 +228,7 @@ std::string handle_get(Bundle_for_response bfr, serverConf conf)
 }
 
 std::string get_response(Bundle_for_response bfr, serverConf conf){
+            std::cout << "test3" << bfr.re.filename << std::endl;
     bfr.re.status_is_handled = true;
     std::string response = "HTTP/1.1 200 OK ";
     if (bfr.re.error_type != 200)
@@ -268,7 +274,6 @@ int compare_path(std::string root, std::string page){
 }
 
 Bundle_for_response confirm_used_server(Bundle_for_response bfr, serverConf conf){
-    std::cout << "check host address" << bfr.re.host_address << std::endl;
     if (conf.http.data()[bfr.specs].size() != 2){
         std::map<std::string,std::map<std::string,std::vector<std::string> > >::iterator it = conf.http.data()[bfr.specs].begin();
         int best = 0;
@@ -277,7 +282,6 @@ Bundle_for_response confirm_used_server(Bundle_for_response bfr, serverConf conf
             if (it->first != "server"){
                 std::string loc = it->first.substr(9, it->first.size() - 9);
                 int test = compare_path(loc, bfr.re.page);
-                std::cout << "test comp loc/page " << test << "loc " << loc << "page " << bfr.re.page << std::endl;
                 if (test > best)
                     bfr.loc = it->first;
             }
@@ -288,8 +292,6 @@ Bundle_for_response confirm_used_server(Bundle_for_response bfr, serverConf conf
     else
         bfr.loc = 1;
     std::size_t j = bfr.specs + 1;
-// TO DO compare first les server name
-// si server name correspond au host, checker location mais ninon nan
     int best = compare_path(bfr.loc.substr(9, bfr.loc.size() - 9), bfr.re.page);
     while (j < conf.http.size()){
         std::map<std::string,std::map<std::string,std::vector<std::string> > >::iterator it = conf.http.data()[j].begin();
@@ -308,7 +310,6 @@ Bundle_for_response confirm_used_server(Bundle_for_response bfr, serverConf conf
         }
         j++;
     }
-    std::cout << "check2" << std::endl;
     bfr.absolut_path = conf.http.data()[bfr.specs][bfr.loc]["root"][0];
     int i = 0;
     int g = 0;
@@ -331,18 +332,22 @@ Bundle_for_response confirm_used_server(Bundle_for_response bfr, serverConf conf
                 bfr.re.is_cgi = true;
         }
     }
-// TO DO check pk marche pas
-    // if (conf.http.data()[bfr.specs][bfr.loc]["methods"].size() > 0){
-    //     std::size_t h = 0;
-    //     int conf = 0;
-    //     while (h < conf.http.data()[bfr.specs][bfr.loc]["methods"].size()){
-    //         if (conf.http.data()[bfr.specs][bfr.loc]["methods"][h] == bfr.re.type)
-    //             conf++;
-    //         h++;
-    //     }
-    //     if (conf == 0)
-    //         bfr.re.error_type = 405;
-    // }
+    if (conf.http.data()[bfr.specs]["server"]["client_max_body_size"].size() > 0){
+        unsigned int g = atoi(conf.http.data()[bfr.specs]["server"]["client_max_body_size"][0].c_str());
+        if (bfr.re.body.size() > g)
+            bfr.re.error_type = 413;
+    }
+    if (conf.http.data()[bfr.specs][bfr.loc]["methods"].size() > 0){
+        std::size_t h = 0;
+        int cont = 0;
+        while (conf.http.data()[bfr.specs][bfr.loc]["methods"].size() > h){
+            if (conf.http.data()[bfr.specs][bfr.loc]["methods"][h] == bfr.re.type)
+                cont++;
+            h++;
+        }
+        if (cont == 0)
+            bfr.re.error_type = 405;
+    }
     std::cout << "check is done" << std::endl;
     return bfr;
 }
@@ -429,6 +434,7 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
             i++;
         int ret;
         if (bfr[i].re.status_is_handled == false){
+                    std::cout << "test2bis" << bfr[i].re.filename << std::endl;
             std::string content = get_response(bfr[i], conf);
             std::cout << "response= " << content << std::endl;
             ret = send(sock[0].fd_sock, content.c_str(), content.size(), 0);
@@ -464,7 +470,9 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
 // TO DO handle failed recv
             return ;
         first_dispatch(buffer, &(bfr[i].re));
+        std::cout << "test1" << bfr[i].re.filename << std::endl;
         bfr[i] = confirm_used_server(bfr[i], conf);
+                std::cout << "test2" << bfr[i].re.filename << std::endl;
         std::cout << "request" << bfr[i].re.error_type << bfr[i].re.host_address << bfr[i].re.host_ip << std::endl;
         if (bfr[i].re.status_is_finished == true)
         {
