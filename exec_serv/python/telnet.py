@@ -50,8 +50,18 @@ timeout = 100
 raw = """POST / HTTP/1.1
 Host: 127.0.0.1:8082
 Content-Type: text/plain
+<<<<<<< HEAD
 filename= "test.txt"\r\n\r
 hello bebe chat mignon
+=======
+filename= "hello.txt"
+Transfer-Encoding: chunked\r\n\r
+26\r\nVoici les données du premier morceau\r\n\r
+1C\ret voici un second morceau\r\n\r\n
+20\ret voici deux derniers morceaux \r\n
+12\r\sans saut de ligne\r\n
+0\r\r\n
+>>>>>>> a79334d6c75fc4d3b30849ac582d6bd87ff8ca45
 """
 
 raw_byte = str.encode(raw)
