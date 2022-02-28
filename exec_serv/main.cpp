@@ -64,22 +64,14 @@ std::string go_error(int err, serverConf conf, Bundle_for_response bfr)
     std::string url = "";
     std::string prefix("error/");
     const char *codes[6] = { "400", "404", "405", "411", "500", "505" };
-    if (conf.http.data()[bfr.specs]["server"]["error_page"].size())
+    while (j < 6)
     {
-        while (i < conf.http.data()[bfr.specs]["server"]["error_page"].size())
+        if (err == atoi(codes[j]))
         {
-            while (j < 6)
-            {
-                if (conf.http.data()[bfr.specs]["server"]["error_page"][i].length() > 3 && conf.http.data()[bfr.specs]["server"]["error_page"][i].substr(0, 3) == codes[j])
-                {
-                    errComp = atoi(codes[j]);
-                    url = conf.http.data()[bfr.specs]["server"]["error_page"][i];
-                }
-                j++;
-            }
-            j = 0;
-            i++;
-        }   
+            errComp = atoi(codes[j]);
+            url = codes[j];
+        }
+        j++;
     }
     std::cout << "code 1: " << err << std::endl;
     std::cout << "code 2: " << errComp << std::endl;
@@ -87,29 +79,26 @@ std::string go_error(int err, serverConf conf, Bundle_for_response bfr)
     char *buffer = NULL;
     std::string content = "";
     std::string numberString = "";
-    if (url.length() > 3)
+    prefix += url;
+    prefix += ".jpeg";
+    std::ifstream is (prefix.c_str(), std::ifstream::binary);
+    if (is)
     {
-        prefix += url.substr(0, 3);
-        prefix += ".jpeg";
-        std::ifstream is (prefix.c_str(), std::ifstream::binary);
-        if (is)
+        is.seekg(3, is.end);
+        length = is.tellg();
+        is.seekg(3, is.beg);
+        //In this example, seekg is used to move the position to the end of the file, and then back to the beginning.
+        if (length != -1)
         {
-            is.seekg(3, is.end);
-            length = is.tellg();
-            is.seekg(3, is.beg);
-            //In this example, seekg is used to move the position to the end of the file, and then back to the beginning.
-            if (length != -1)
-            {
-                buffer = new char[length];
-                is.read(buffer,length);
-                content = std::string(buffer, length);
-                delete [] buffer;
-                std::ostringstream digit;
-                digit << length;
-                numberString = digit.str();
-            }
-            is.close();
+            buffer = new char[length];
+            is.read(buffer,length);
+            content = std::string(buffer, length);
+            delete [] buffer;
+            std::ostringstream digit;
+            digit << length;
+            numberString = digit.str();
         }
+        is.close();
     }
     if (err == 400)// for now for missing extension in file
         response.append("400 BAD REQUEST ");
@@ -123,7 +112,16 @@ std::string go_error(int err, serverConf conf, Bundle_for_response bfr)
         response.append("500 INTERNAL SERVER ERROR ");
     else if (err == 505)// bad hhtp protocol version
         response.append("505 HTTP VERSION NOT SUPPORTED ");
-    if (errComp == err)
+    i = 0;
+    bool foundErrorPage = 0;
+    while (i < conf.http.data()[bfr.specs]["server"]["error_page"].size())
+    {
+        if (conf.http.data()[bfr.specs]["server"]["error_page"][i].length() >= 3 && atoi(conf.http.data()[bfr.specs]["server"]["error_page"][i].substr(0, 3).c_str()) == err)
+            foundErrorPage = 1;
+        i++;
+    }
+    std::cout << "found" << foundErrorPage << std::endl;
+    if (foundErrorPage)
         response += "Content-Type: " + findExtension(prefix) + " Content-Length: " + numberString + "\r\n\r\n" + content;
     return response;
 }
