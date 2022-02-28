@@ -13,6 +13,9 @@
 // #include "request.hpp"
 #include "cgi.hpp"
 
+#include <dirent.h>
+#include <sys/types.h>
+
 #define MAX_EVENTS 5
 
 std::vector<Bundle_for_response> bfr;
@@ -125,14 +128,102 @@ std::string go_error(int err, serverConf conf, Bundle_for_response bfr)
     return response;
 }
 
+std::string go_redirect(Bundle_for_response bfr, serverConf conf){
+    std::string response = "HTTP/1.1 ";
+    std::string to_extract = conf.http.data()[bfr.specs][bfr.loc]["return"][0];
+    std::string t = to_extract.substr(0, to_extract.find_first_of(" "));
+    response.append(t);
+    response.append("\r\nLocation: ");
+    response.append(to_extract.substr(to_extract.find_first_of(" ") + 1, to_extract.size() - to_extract.find_first_of(" ") + 1));
+    return response;
+}
+
+std::string go_directory(Bundle_for_response bfr, serverConf conf){
+//TO DO banb delete si directory
+    std::string response = "";
+    std::string body = "";
+    std::string temp = bfr.absolut_path.substr(bfr.absolut_path.find_last_of("/") + 1, bfr.absolut_path.size() - bfr.absolut_path.find_last_of("/") + 1);
+    std::cout << "temp test" << temp << std::endl;
+    struct stat s;
+    std::cout << "DIR " << std::endl;
+    if ( stat(temp.c_str(), &s) == 0 ){
+            std::cout << "DIR 2" << std::endl;
+        if ( s.st_mode & S_IFDIR ){
+            std::cout << "auto " << conf.http.data()[bfr.specs][bfr.loc]["autoindex"][0] << std::endl;
+            if (conf.http.data()[bfr.specs][bfr.loc]["autoindex"][0] == "1"){
+                struct dirent *dp;
+                DIR *dirp = opendir(temp.c_str());
+                while ((dp = readdir(dirp)) != NULL){
+                    std::cout << "ping" << dp->d_name << std::endl;
+                    body.append(dp->d_name);
+                    body.append("\n");
+                }
+                (void)closedir(dirp);
+                response.append(body);
+            }
+        }
+        else{
+            std::cout << "is file " << std::endl;
+            return response;
+        }
+    }
+    else
+    std::cout << errno << std::endl;
+        return response;
+    return response;
+    // TO DO handle if absolut path fucked
+}
+
+std::string go_simple_upload(Bundle_for_response bfr, serverConf conf){
+    std::string way = "";
+    std::string te;
+    std::cout << "check post" << std::endl;
+    if (conf.http.data()[bfr.specs][bfr.loc]["upload_dir"].size() > 0)
+        way.append(conf.http.data()[bfr.specs][bfr.loc]["upload_dir"][0]);
+    if (bfr.absolut_path.size() > 1)
+        te = bfr.absolut_path.substr(0, bfr.absolut_path.find_last_of("/"));
+    else
+        te = bfr.absolut_path;
+    te.append(way);
+    // chdir(te.c_str());
+    te.append(bfr.re.filename);
+    std::ofstream fs;
+    fs.open(te.c_str());
+    // myfile << "Writing this to a file.\n";
+//   myfile.close();
+    
+    
+    // std::fstream fs;
+    // fs.open(bfr.re.filename.c_str(), std::fstream::out);
+    fs << bfr.re.body;
+    std::cerr << bfr.re.filename.c_str() << bfr.re.body << std::endl;
+    // fs << bfr.re.body.rdbuf();
+    fs.close();
+// TO DO error codes
+    return "HTTP/1.1 201 CREATED";
+}
+
+std::string go_post_check(Bundle_for_response bfr, serverConf conf)
+{
+    if (bfr.re.content_type != "multipart/form-data" && bfr.re.content_type != "application/x-www-form-urlencoded")
+        return go_simple_upload(bfr, conf);
+    return "";
+}
+
 std::string get_response(Bundle_for_response bfr, serverConf conf){
     bfr.re.status_is_handled = true;
     if (bfr.re.error_type != 200)
         return go_error(bfr.re.error_type, conf, bfr);
-    // check_methods(&r, s);
     std::cerr << "kikou" << std::endl;
     if (bfr.re.is_cgi == true)
         return handle_cgi(bfr, conf);
+    if (conf.http.data()[bfr.specs][bfr.loc]["return"].size() > 0)
+        return go_redirect(bfr, conf);
+    std::string resp = go_directory(bfr, conf);
+    if (resp != "")
+        return resp;
+    if (bfr.re.type == "POST")
+        return go_post_check(bfr, conf);
     else{
         std::string response = "HTTP/1.1 200 OK \r\n hello";
         return response.c_str();
@@ -140,8 +231,11 @@ std::string get_response(Bundle_for_response bfr, serverConf conf){
 }
 
 int compare_path(std::string root, std::string page){
-    int res = 1;
-    root = root.substr(1, root.size() - 1);
+    int res = 0;
+    if (root.size() > 1)
+        root = root.substr(1, root.size() - 1);
+    else
+        return 1;
     page = page.substr(1, page.size() - 1);
     std::size_t test1 = root.find_first_of("/");
     std::size_t test2 = page.find_first_of("/");
@@ -159,47 +253,111 @@ int compare_path(std::string root, std::string page){
     return res;
 }
 
-//TO DO repmace root by location
-void confirm_used_server(Bundle_for_response bfr, serverConf conf){
-    std::cout << "check" << std::endl;
-    if (conf.http.data()[bfr.specs]["server"]["root"].size() != 1){
-        std::size_t l = 1;
-        int best = compare_path(conf.http.data()[bfr.specs]["server"]["root"][0], bfr.re.page);
-        while (l < conf.http.data()[bfr.specs]["server"]["root"].size()){
-            int curr = compare_path(conf.http.data()[bfr.specs]["server"]["root"][l], bfr.re.page);
-            if (curr > best){
-                best = curr;
-                bfr.root = l;
+Bundle_for_response confirm_used_server(Bundle_for_response bfr, serverConf conf){
+    std::cout << "check host address" << bfr.re.host_address << std::endl;
+    if (conf.http.data()[bfr.specs].size() != 2){
+        std::map<std::string,std::map<std::string,std::vector<std::string> > >::iterator it = conf.http.data()[bfr.specs].begin();
+        int best = 0;
+        int i = 0;
+        while (it != conf.http.data()[bfr.specs].end()){
+            if (it->first != "server"){
+                std::string loc = it->first.substr(9, it->first.size() - 9);
+                int test = compare_path(loc, bfr.re.page);
+                std::cout << "test comp loc/page " << test << "loc " << loc << "page " << bfr.re.page << std::endl;
+                if (test > best)
+                    bfr.loc = it->first;
             }
-            l++;
+            i++;
+            it++;
         }
     }
     else
-        bfr.root = 0;
+        bfr.loc = 1;
     std::size_t j = bfr.specs + 1;
+// TO DO compare first les server name
+// si server name correspond au host, checker location mais ninon nan
+    int best = compare_path(bfr.loc.substr(9, bfr.loc.size() - 9), bfr.re.page);
     while (j < conf.http.size()){
-        if (conf.http.data()[j]["server"]["listen"][0] == bfr.re.host_ip){
-            std::size_t k = 0;
-            int best = bfr.root;
-            while (k < conf.http.data()[j]["server"]["root"].size()){
-                int curr = compare_path(conf.http.data()[j]["server"]["root"][k], bfr.re.page);
-                if (curr > best){
-                    best = curr;
-                    bfr.root = k;
+        std::map<std::string,std::map<std::string,std::vector<std::string> > >::iterator it = conf.http.data()[j].begin();
+        int i = 0;
+        while (it != conf.http.data()[j].end()){
+            if (it->first != "server"){
+                std::string loc = it->first.substr(9, it->first.size() - 9);
+                int test = compare_path(loc, bfr.re.page);
+                if (test > best){
+                    bfr.loc = it->first;
                     bfr.specs = j;
                 }
-                k++;
             }
+            i++;
+            it++;
         }
         j++;
     }
     std::cout << "check2" << std::endl;
-    std::string absolut_path = conf.http.data()[bfr.specs]["server"]["root"][bfr.root];
-// TO DO here?
-//     Define a directory or a file from where the file should be searched (for example,
-// if url /kapouet is rooted to /tmp/www, url /kapouet/pouic/toto/pouet is
-// /tmp/www/pouic/toto/pouet)
+    bfr.absolut_path = conf.http.data()[bfr.specs][bfr.loc]["root"][0];
+    int i = 0;
+    int g = 0;
+    std::cout << bfr.loc << std::endl;
+    std::string temp = bfr.loc.substr(9, bfr.loc.size() - 9);
+    std::cout << "temp check" << temp << bfr.re.page << std::endl;
+    while (bfr.re.page[i] == temp[g]){
+        i++;
+        g++;
+    }
+    if (i != 1)
+        i--;
+    bfr.absolut_path.append(bfr.re.page.substr(i, bfr.re.page.size() - i));
+    std::cout << "absolut path" << bfr.absolut_path << std::endl;
+    std::size_t d = bfr.re.page.find_last_of(".");
+    if (d != bfr.re.page.npos){
+        std::string ext = bfr.re.page.substr(d);
+        if (conf.http.data()[bfr.specs][bfr.loc]["cgi"].size() > 0){
+            if (ext == conf.http.data()[bfr.specs][bfr.loc]["cgi"][0])
+                bfr.re.is_cgi = true;
+        }
+    }
+// TO DO check pk marche pas
+    // if (conf.http.data()[bfr.specs][bfr.loc]["methods"].size() > 0){
+    //     std::size_t h = 0;
+    //     int conf = 0;
+    //     while (h < conf.http.data()[bfr.specs][bfr.loc]["methods"].size()){
+    //         if (conf.http.data()[bfr.specs][bfr.loc]["methods"][h] == bfr.re.type)
+    //             conf++;
+    //         h++;
+    //     }
+    //     if (conf == 0)
+    //         bfr.re.error_type = 405;
+    // }
+    std::cout << "check is done" << std::endl;
+    return bfr;
 }
+
+        // if (conf.http.data()[j]["server"]["listen"][0] == bfr.re.host_ip){
+        //     std::size_t k = 0;
+        //     int best = bfr.root;
+        //     while (k < conf.http.data()[j]["server"]["root"].size()){
+        //         int curr = compare_path(conf.http.data()[j]["server"]["root"][k], bfr.re.page);
+        //         if (curr > best){
+        //             best = curr;
+        //             bfr.root = k;
+        //             bfr.specs = j;
+        //         }
+        //         k++;
+        //     }
+        // }
+        // j++;
+            //     std::size_t l = 1;
+    //     int best = compare_path(conf.http.data()[bfr.specs]["server"]["root"][0], bfr.re.page);
+    //     while (l < conf.http.data()[bfr.specs]["server"]["root"].size()){
+    //         int curr = compare_path(conf.http.data()[bfr.specs]["server"]["root"][l], bfr.re.page);
+    //         if (curr > best){
+    //             best = curr;
+    //             bfr.root = l;
+    //         }
+    //         l++;
+    //     }
+    // }
 
 int check_conn(int fd_1, Socket *serv, int nbr){
     int i = 0;
@@ -256,18 +414,20 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
         while (i != bfr.size() && bfr[i].fd_read != fd)
             i++;
         int ret;
-        std::string content = get_response(bfr[i], conf);
-        std::cout << "response= " << content << std::endl;
-        ret = send(sock[0].fd_sock, content.c_str(), content.size(), 0);
-        if (ret == 0){
-            std::cout << "MT response" << std::endl;
+        if (bfr[i].re.status_is_handled == false){
+            std::string content = get_response(bfr[i], conf);
+            std::cout << "response= " << content << std::endl;
+            ret = send(sock[0].fd_sock, content.c_str(), content.size(), 0);
+            if (ret == 0){
+                std::cout << "MT response" << std::endl;
+                close(sock[0].fd_sock);
+                exit(0);
+                // close(bfr[i].fd_read);
+            }
+            if (ret == 0 || ret == -1)
+                return ;
             close(sock[0].fd_sock);
-            exit(0);
-            // close(bfr[i].fd_read);
         }
-        if (ret == 0 || ret == -1)
-            return ;
-        close(sock[0].fd_sock);
         // event->events = EPOLLIN;
         // epoll_ctl(epoll_fd, EPOLL_CTL_MOD, sock[0].fd_sock, event);
         // bfr[i].fd_accept = sock[0].fd_sock; // write?
@@ -290,7 +450,7 @@ void poll_handling(int epoll_fd, const int fd, struct epoll_event *event, Socket
 // TO DO handle failed recv
             return ;
         first_dispatch(buffer, &(bfr[i].re));
-        confirm_used_server(bfr[i], conf);
+        bfr[i] = confirm_used_server(bfr[i], conf);
         std::cout << "request" << bfr[i].re.error_type << bfr[i].re.host_address << bfr[i].re.host_ip << std::endl;
         if (bfr[i].re.status_is_finished == true)
         {
@@ -381,9 +541,9 @@ int main(int argc, char *argv[]){
     }
     signal(SIGINT, signalHandler);
     serverConf conf = start_conf(argv[1]);
-    if (!conf._valid){
-        std::cout << "This configuration file is invalid" << std::endl;
-        return 1;
-    }
+    // if (!conf._valid){
+    //     std::cout << "This configuration file is invalid" << std::endl;
+    //     return 1;
+    // }
     return launch(conf);
 }

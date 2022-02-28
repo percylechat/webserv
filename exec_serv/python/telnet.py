@@ -62,16 +62,12 @@ timeout = 100
 
 # cat=Ivitch&enfant=bebe&cat=Lolilol"""
 
-raw = """PUT / HTTP/1.1
-Content-Type: multipart/form-data
-Content-Length: 151;boundary="hibourigolo"
-
---hibourigolo
-Content-Disposition: form-data; name="cat"
-
-hello
---hibourigolo
-Content-Disposition: form-data; name="test"; filename="example.txt"
+raw = """POST / HTTP/1.1
+Host: 127.0.0.1:8082
+Content-Type: text/plain
+filename= "test.txt
+Content-Lenght: 22 \r\n\r
+hello bebe chat mignon
 """
 
 raw_byte = str.encode(raw)

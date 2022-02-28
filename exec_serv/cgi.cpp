@@ -10,9 +10,14 @@ std::map<std::string, std::string> create_env(Bundle_for_response bfr, serverCon
     cgi.insert(std::make_pair("SERVER_PROTOCOL", "HTTP/1.1"));
     cgi.insert(std::make_pair("SERVER_SOFTWARE", "webserv/1.1"));
     cgi.insert(std::make_pair("REMOTE_ADDR", "127.0.0.1"));
-    cgi.insert(std::make_pair("SERVER_PORT", conf.http.data()[bfr.specs]["server"]["listen"][0]));
     cgi.insert(std::make_pair("CONTENT_TYPE", bfr.re.content_type));
     cgi.insert(std::make_pair("REQUEST_METHOD", bfr.re.type));
+    cgi.insert(std::make_pair("PATH_INFO", bfr.re.page));
+    cgi.insert(std::make_pair("PATH_TRANSLATED", bfr.re.page));
+    cgi.insert(std::make_pair("QUERY_STRING", bfr.re.query));
+    cgi.insert(std::make_pair("SCRIPT_NAME", bfr.absolut_path));
+    cgi.insert(std::make_pair("SERVER_NAME", conf.http.data()[bfr.specs]["server"]["server_name"][0]));
+    cgi.insert(std::make_pair("SERVER_PORT", conf.http.data()[bfr.specs]["server"]["listen"][0]));
     if (bfr.re.type == "GET")
         cgi.insert(std::make_pair("CONTENT_LENGTH", "0"));
     else {
@@ -23,18 +28,6 @@ std::map<std::string, std::string> create_env(Bundle_for_response bfr, serverCon
         cgi.insert(std::make_pair("CONTENT_LENGTH", s));
         cgi.insert(std::make_pair("BODY", bfr.re.body));
     }
-    cgi.insert(std::make_pair("PATH_INFO", bfr.re.page));
-    cgi.insert(std::make_pair("PATH_TRANSLATED", bfr.re.page));
-    cgi.insert(std::make_pair("QUERY_STRING", bfr.re.query));
-	// cgi.insert(std::make_pair("DIR_PATH"], _loc.get_root();
-//Contient le chemin HTTP du script les données transmises dans l'appel.
-//Supposons que le script a l'adresse http://ma.page.net/cgi-bin/test.pl et qu'il a été appelé avec http://ma.page.net/cgi-bin/test.pl?User=Serge.
-//Alors la variable REQUEST_URI livre la valeur /cgi-bin/test.pl?User=Serge.
-	// _env["REQUEST_URI"]			= _loc.get_uri();
-	// _env["SCRIPT_NAME"]			= _loc.get_cgi_path();
-	// _env["SERVER_NAME"]			= _conf.get_server_name();
-
-	// _env["REDIRECT_STATUS"]		= "200";
     return cgi;
 }
 
@@ -57,7 +50,6 @@ char **go_env(std::map<std::string, std::string> cgi){
 }
 
 std::string handle_cgi(Bundle_for_response bfr, serverConf conf){
-// TO DO be careful of script permissions
     if (bfr.re.type == "DELETE"){
         bfr.re.error_type = 405;
         return go_error(bfr.re.error_type, conf, bfr);
@@ -72,6 +64,7 @@ std::string handle_cgi(Bundle_for_response bfr, serverConf conf){
     fd_save[0] = dup(STDIN_FILENO);
     fd_save[1] = dup(STDOUT_FILENO);
     std::string name = "cgi_output";
+    std::string te = bfr.absolut_path.substr(0, bfr.absolut_path.find_last_of("/"));
     if (pipe(pipe_fd))
         exit(EXIT_FAILURE);
     pid = fork();
@@ -80,8 +73,7 @@ std::string handle_cgi(Bundle_for_response bfr, serverConf conf){
 	else if (pid == 0){
         char *args[2];
         char **env = go_env(cgi);
-                // std::cout << "ping" << conf.http.data()[bfr.specs]["server"]["root"][0].c_str() << std::endl;
-        std::string te = conf.http.data()[bfr.specs]["server"]["root"][bfr.root];
+        // std::string te = conf.http.data()[bfr.specs]["server"]["root"][bfr.specs];
         chdir(te.c_str());
         std::cout << "ping" << bfr.re.page.c_str() << std::endl;
 		args[0] = (char*)bfr.re.page.c_str();
@@ -128,8 +120,8 @@ std::string handle_cgi(Bundle_for_response bfr, serverConf conf){
     std::cerr << "end" << std::endl;
 	if (pid == 0)
 		exit(0);
-//TO DO file name + path
-    std::basic_ifstream<char> fin("cgi/cgi_output");
+    std::string de = te + "/cgi_output";
+    std::basic_ifstream<char> fin(de.c_str());
 	std::ostringstream oss;
 	oss << fin.rdbuf();
 	std::string ret(oss.str());

@@ -48,6 +48,7 @@ class Request{
     bool is_cgi;
     std::string query;
     std::string pure_content;
+    std::string filename;
 };
 
 class Bundle_for_response{
@@ -58,7 +59,8 @@ class Bundle_for_response{
     int fd_write;
     Request re;
     int specs;
-    int root;
+    std::string loc;
+    std::string absolut_path;
     Bundle_for_response() {}
     Bundle_for_response& operator=( const Bundle_for_response & one){
         if (this == &one)
@@ -69,6 +71,8 @@ class Bundle_for_response{
         this->fd_listen = one.fd_listen;
         this->specs = one.specs;
         this->re = one.re;
+        this->loc = one.loc;
+        this->absolut_path = one.absolut_path;
         return (*this);
     }
     void init_re(){
@@ -86,6 +90,7 @@ class Bundle_for_response{
         this->re.is_cgi = false;
         this->re.query = "";
         this->re.pure_content = "";
+        this->re.filename = "";
     }
 };
 

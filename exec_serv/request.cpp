@@ -19,16 +19,6 @@ std::string get_body(std::string mess){
     return mess.substr(start, mess.size() - start);
 }
 
-bool get_content_type(std::string file){
-    int i = file.find_last_of(".");
-    if (i == -1)
-        return false;
-    std::string ext = file.substr(i);
-    if (ext == ".sh")
-        return true;
-    return false;
-}
-
 std::string get_query(std::string page){
     std::size_t test = page.find_first_of("?");
     if (test == page.npos)
@@ -57,7 +47,6 @@ void fill_request_basic(char *msg, int n, Request *r){
     std::string mess = msg;
     r->page = mess.substr(i, j - i);
     std::cout << "page " << r->page << std::endl;
-    r->is_cgi = get_content_type(r->page);
     r->query = get_query(r->page);
     j += 1;
     i = j;
@@ -88,16 +77,35 @@ void fill_request_basic(char *msg, int n, Request *r){
     return ;
 }
 
+std::string get_filename(std::string mess){
+    int file_start = mess.find("filename=\"") + 11;
+    if (file_start == 11)
+        return "";
+    int file_end = file_start;
+    while (mess[file_end] != '\"')
+        file_end++;
+    std::string filename = mess.substr(file_start, file_end);
+    return filename;
+}
+
+
 void classic_post(std::string mess, Request *r){
     r->content_size = get_content_size(mess);
+            std::cout << "size " << r->content_size << std::endl;
     if (r->content_size == -1){
         r->error_type = 411;
+        std::cout << "no size" << std::endl;
         return ;
     }
     r->body = get_body(mess);
     if (r->body == "")
         r->error_type = 400;
     r->status_is_finished = true;
+    if (r->content_type != "application/x-www-form-urlencoded"){
+        r->filename = get_filename(mess);
+        if (r->filename == "")
+            r->error_type = 400;
+    }
 }
 
 void chunked_post(std::string mess, Request *r){
@@ -132,7 +140,7 @@ void fill_request_post(char *msg, Request *r){
     std::string mess = msg;
     std::size_t type = mess.find("Content-Type: ") + 14;
     if (type == 14){
-        r->error_type = 411;
+        r->error_type = 400;
         r->status_is_finished = true;
         return ;
     }
@@ -141,6 +149,13 @@ void fill_request_post(char *msg, Request *r){
         end++;
     std::string content_type = mess.substr(type, end - type);
     if (content_type == "multipart/form-data"){
+        r->content_size = get_content_size(mess);
+            std::cout << "size " << r->content_size << std::endl;
+        if (r->content_size == -1){
+            r->error_type = 411;
+            std::cout << "no size" << std::endl;
+            return ;
+        }   
         std::size_t start = mess.find("boundary=\"");
         if (start == mess.npos){
             r->error_type = 400;
