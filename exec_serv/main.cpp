@@ -184,12 +184,10 @@ std::string go_error(int err, serverConf conf, Bundle_for_response bfr)
         response.append("500 INTERNAL SERVER ERROR");
     else if (err == 505 && content.size())// bad hhtp protocol version
         response.append("505 HTTP VERSION NOT SUPPORTED");
-    else
-        return set_error(err);
     std::cout << "content size" << content.size() << std::endl;
     if (content.size())
-        response += " Content-Type: " + findExtension(prefix) + " Content-Length: " + numberString + "\r\n\r\n" + content;
-    return response;
+        return response += " Content-Type: " + findExtension(prefix) + " Content-Length: " + numberString + "\r\n\r\n" + content;
+    return set_error(err);
 }
 
 std::string go_redirect(Bundle_for_response bfr, serverConf conf){

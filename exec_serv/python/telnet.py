@@ -72,18 +72,18 @@ timeout = 100
 # 505 HTTP VERSION NOT SUPPORTED - ERROR PAGE FOUND IN CONF FILE
 # OK *
 
-raw = """GET / HTTP/1.0
-Host: 127.0.0.1:8082
-Content-Type: text/plain
-Content-Length: 1000
-filename= "hello.txt"
-Transfer-Encoding: chunked\r\n\r
-26\r\nVoici les données du premier morceau\r\n\r
-1C\ret voici un second morceau\r\n\r\n
-20\ret voici deux derniers morceaux \r\n
-12\r\sans saut de ligne\r\n
-0\r\r\n
-"""
+# raw = """GET / HTTP/1.0
+# Host: 127.0.0.1:8082
+# Content-Type: text/plain
+# Content-Length: 1000
+# filename= "hello.txt"
+# Transfer-Encoding: chunked\r\n\r
+# 26\r\nVoici les données du premier morceau\r\n\r
+# 1C\ret voici un second morceau\r\n\r\n
+# 20\ret voici deux derniers morceaux \r\n
+# 12\r\sans saut de ligne\r\n
+# 0\r\r\n
+# """
 # 505 HTTP VERSION NOT SUPPORTED - ERROR PAGE NOT FOUND IN CONF FILE
 # OK *
 
@@ -147,17 +147,17 @@ Transfer-Encoding: chunked\r\n\r
 # 404 NOT FOUND - ERROR PAGE NOT FOUND IN CONF FILE
 # OK *
 
-# raw = """GET /ugly_cat/percy.jpg HTTP/1.1
-# Content-Type: text/plain
-# Content-Length: 1000
-# filename= "hello.txt"
-# Transfer-Encoding: chunked\r\n\r
-# 26\r\nVoici les données du premier morceau\r\n\r
-# 1C\ret voici un second morceau\r\n\r\n
-# 20\ret voici deux derniers morceaux \r\n
-# 12\r\sans saut de ligne\r\n
-# 0\r\r\n
-# """
+raw = """GET /ugly_cat/percy.jpg HTTP/1.1
+Content-Type: text/plain
+Content-Length: 1000
+filename= "hello.txt"
+Transfer-Encoding: chunked\r\n\r
+26\r\nVoici les données du premier morceau\r\n\r
+1C\ret voici un second morceau\r\n\r\n
+20\ret voici deux derniers morceaux \r\n
+12\r\sans saut de ligne\r\n
+0\r\r\n
+"""
 # 400 BAD REQUEST - ERROR PAGE FOUND IN CONF FILE
 # OK *
 
