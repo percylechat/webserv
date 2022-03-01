@@ -60,7 +60,7 @@ std::string set_error(int err){
         response.append("400 ");
         response.append(error_msg);
         response.append(" Content-Type: text/html Context-Lenght: 101\n\n");
-        response.append("<html><body>400 FORBIDDEN<img src=\"error/400.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+        response.append("<html><body>400 BAD REQUEST<img src=\"error/400.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
     }
     if (err == 403){
 // for now for missing extension in file
