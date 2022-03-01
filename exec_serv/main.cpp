@@ -361,7 +361,7 @@ Bundle_for_response confirm_used_server(Bundle_for_response bfr, serverConf conf
         i++;
         g++;
     }
-    if (i != 1)
+    if (i >= 1)
         i--;
     bfr.absolut_path.append(bfr.re.page.substr(i, bfr.re.page.size() - i));
     std::cout << "absolut path" << bfr.absolut_path << std::endl;
