@@ -4,14 +4,14 @@ host = "127.0.0.1"
 port = 8082
 timeout = 100
 
-#classic post upload
-# raw = """POST / HTTP/1.1
-# Host: 127.0.0.1:8082
-# Content-Type: text/plain
-# filename= "test.txt"
-# Content-Lenght: 22 \r\n\r
-# hello bebe chat mignon
-# """
+# classic post upload
+raw = """POST / HTTP/1.1
+Host: 127.0.0.1:8082
+Content-Type: text/plain
+filename= "test.txt"
+Content-Lenght: 22 \r\n\r
+hello bebe chat mignon
+"""
 
 #classic delete upload
 # raw = """DELETE /test.txt HTTP/1.1
@@ -23,14 +23,14 @@ timeout = 100
 # Host: 127.0.0.1:8082
 # """
 
-#upload avec grosse size
-raw = """POST / HTTP/1.1
-Host: 127.0.0.1:8082
-Content-Type: text/plain
-filename= "test.txt"
-Content-Lenght: 2222 \r\n\r
-hello bebe chat mignon
-"""
+#fail method > 405
+# raw = """BEBE / HTTP/1.1
+# Host: 127.0.0.1:8082
+# Content-Type: text/plain
+# filename= "test.txt"
+# Content-Lenght: 22 \r\n\r
+# hello bebe chat mignon
+# """
 
 
 #chunked encoding upload

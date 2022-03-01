@@ -209,10 +209,12 @@ void first_dispatch(char *msg, Request *r){
     }
     else if (msg == NULL){
         r->error_type = 400;
+        r->page = "/";
         r->status_is_finished = true;
     }
     else{
         r->error_type = 405;
+        r->page = "/";
         r->status_is_finished = true;
     }
 }
