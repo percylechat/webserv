@@ -55,7 +55,7 @@ timeout = 100
 # 0\r\r\n
 # """
 # 200 OK
-# OK *
+# OK **
 
 # raw = """GET / HTTP/1.0
 # Host: 127.0.0.1:8082
@@ -70,7 +70,7 @@ timeout = 100
 # 0\r\r\n
 # """
 # 505 HTTP VERSION NOT SUPPORTED - ERROR PAGE FOUND IN CONF FILE
-# OK *
+# OK **
 
 # raw = """GET / HTTP/1.0
 # Host: 127.0.0.1:8082
@@ -85,7 +85,7 @@ timeout = 100
 # 0\r\r\n
 # """
 # 505 HTTP VERSION NOT SUPPORTED - ERROR PAGE NOT FOUND IN CONF FILE
-# OK *
+# OK **
 
 # raw = """GET /ugly_cat/graphic_design.jpg HTTP/1.1
 # Host: 127.0.0.1:8082
@@ -98,9 +98,9 @@ timeout = 100
 # 20\ret voici deux derniers morceaux \r\n
 # 12\r\sans saut de ligne\r\n
 # 0\r\r\n
-# """
+# # """
 # 200 OK
-# OK *
+# OK **
 
 # raw = """GET index.html HTTP/1.1
 # Host: 127.0.0.1:8082
@@ -115,7 +115,7 @@ timeout = 100
 # 0\r\r\n
 # """
 # 200 OK
-# OK *
+# OK **
 
 # raw = """GET /ugly_cat/unknown.jpg HTTP/1.1
 # Host: 127.0.0.1:8082
@@ -130,7 +130,7 @@ timeout = 100
 # 0\r\r\n
 # """
 # 404 NOT FOUND - ERROR PAGE FOUND IN CONF FILE
-# OK *
+# OK **
 
 # raw = """GET /ugly_cat/unknown.jpg HTTP/1.1
 # Host: 127.0.0.1:8082
@@ -145,21 +145,21 @@ timeout = 100
 # 0\r\r\n
 # """
 # 404 NOT FOUND - ERROR PAGE NOT FOUND IN CONF FILE
-# OK *
+# OK **
 
-raw = """GET /ugly_cat/percy.jpg HTTP/1.1
-Content-Type: text/plain
-Content-Length: 1000
-filename= "hello.txt"
-Transfer-Encoding: chunked\r\n\r
-26\r\nVoici les données du premier morceau\r\n\r
-1C\ret voici un second morceau\r\n\r\n
-20\ret voici deux derniers morceaux \r\n
-12\r\sans saut de ligne\r\n
-0\r\r\n
-"""
+# raw = """GET /ugly_cat/percy.jpg HTTP/1.1
+# Content-Type: text/plain
+# Content-Length: 1000
+# filename= "hello.txt"
+# Transfer-Encoding: chunked\r\n\r
+# 26\r\nVoici les données du premier morceau\r\n\r
+# 1C\ret voici un second morceau\r\n\r\n
+# 20\ret voici deux derniers morceaux \r\n
+# 12\r\sans saut de ligne\r\n
+# 0\r\r\n
+# """
 # 400 BAD REQUEST - ERROR PAGE FOUND IN CONF FILE
-# OK *
+# OK **
 
 # raw = """GET /ugly_cat/percy.jpg HTTP/1.1
 # Content-Type: text/plain
@@ -173,7 +173,7 @@ Transfer-Encoding: chunked\r\n\r
 # 0\r\r\n
 # """
 # 400 BAD REQUEST - ERROR PAGE PATH INCORRECT IN CONF FILE
-# OK *
+# OK **
 
 # raw = """PUT /index.html HTTP/1.1
 # Host: 127.0.0.1:8082
@@ -188,7 +188,7 @@ Transfer-Encoding: chunked\r\n\r
 # 0\r\r\n
 # """
 # 405 METHOD NOT ALLOWED - ERROR PAGE FOUND IN CONF FILE
-# OK *
+# OK **
 
 # raw = """RANDOMMETHOD /index.html HTTP/1.1
 # Host: 127.0.0.1:8082
@@ -203,7 +203,7 @@ Transfer-Encoding: chunked\r\n\r
 # 0\r\r\n
 # """
 # 405 METHOD NOT ALLOWED - ERROR PAGE PATH INCORRECT IN CONF FILE
-# OK *
+# OK **
 
 # raw = """DELETE ugly_cat HTTP/1.1
 # Host: 127.0.0.1:8082
@@ -218,7 +218,7 @@ Transfer-Encoding: chunked\r\n\r
 # 0\r\r\n
 # """
 # 403 FORBIDDEN - ERROR PAGE FOUND IN CONF FILE
-# OK * - CHANGE i != 1 BY i > 1
+# OK **
 
 # raw = """DELETE /ugly_cat/ HTTP/1.1
 # Host: 127.0.0.1:8082
@@ -233,7 +233,7 @@ Transfer-Encoding: chunked\r\n\r
 # 0\r\r\n
 # """
 # 500 INTERNAL SERVER ERROR - ERROR PAGE NOT FOUND IN CONF FILE
-# OK *
+# OK **
 
 # raw = """DELETE /ugly_cat/mdr.jpg HTTP/1.1
 # Host: 127.0.0.1:8082
@@ -247,7 +247,7 @@ Transfer-Encoding: chunked\r\n\r
 # 0\r\r\n
 # """
 # 500 INTERNAL SERVER ERROR - ERROR PAGE FOUND IN CONF FILE
-# OK *
+# OK **
 
 # raw = """DELETE /ugly_cat/mdr.jpg HTTP/1.1
 # Host: 127.0.0.1:8082
@@ -262,7 +262,7 @@ Transfer-Encoding: chunked\r\n\r
 # 0\r\r\n
 # """
 # 500 INTERNAL SERVER ERROR - ERROR PAGE NOT FOUND IN CONF FILE
-# OK *
+# OK **
 
 # PREVIOUS OOR
 # raw = """GET index.html HTTP/1.1
