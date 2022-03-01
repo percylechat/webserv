@@ -1,17 +1,4 @@
 import telnetlib
-import base64
-
-import cv2
-# raw = """POST /test/ HTTP/1.0
-# From: frog@jmarshall.com
-# User-Agent: HTTPTool/1.0
-# Content-Type: application/x-www-form-urlencoded
-# Content-Length: 32
-
-# veme=Cosby&favorite+flavor=flies
-# """
-# raw_byte = str.encode(raw)
-
 
 host = "127.0.0.1"
 port = 8082
@@ -25,6 +12,26 @@ timeout = 100
 # Content-Lenght: 22 \r\n\r
 # hello bebe chat mignon
 # """
+
+#classic delete upload
+# raw = """DELETE /test.txt HTTP/1.1
+# Host: 127.0.0.1:8082
+# """
+
+#delete directory
+# raw = """DELETE /ugly_cat HTTP/1.1
+# Host: 127.0.0.1:8082
+# """
+
+#upload avec grosse size
+raw = """POST / HTTP/1.1
+Host: 127.0.0.1:8082
+Content-Type: text/plain
+filename= "test.txt"
+Content-Lenght: 2222 \r\n\r
+hello bebe chat mignon
+"""
+
 
 #chunked encoding upload
 # raw = """GET /ugly_cat/merde.jpg HTTP/1.1
@@ -103,18 +110,18 @@ timeout = 100
 # 200 OK
 # NOT OK
 
-raw = """GET /ugly_cat/unknown.jpg HTTP/1.1
-Host: 127.0.0.1:8082
-Content-Type: text/plain
-Content-Length: 1000
-filename= "hello.txt"
-Transfer-Encoding: chunked\r\n\r
-26\r\nVoici les données du premier morceau\r\n\r
-1C\ret voici un second morceau\r\n\r\n
-20\ret voici deux derniers morceaux \r\n
-12\r\sans saut de ligne\r\n
-0\r\r\n
-"""
+# raw = """GET /ugly_cat/unknown.jpg HTTP/1.1
+# Host: 127.0.0.1:8082
+# Content-Type: text/plain
+# Content-Length: 1000
+# filename= "hello.txt"
+# Transfer-Encoding: chunked\r\n\r
+# 26\r\nVoici les données du premier morceau\r\n\r
+# 1C\ret voici un second morceau\r\n\r\n
+# 20\ret voici deux derniers morceaux \r\n
+# 12\r\sans saut de ligne\r\n
+# 0\r\r\n
+# """
 # 404 NOT FOUND - ERROR PAGE FOUND IN CONF FILE
 # OK
 
@@ -278,10 +285,7 @@ Transfer-Encoding: chunked\r\n\r
 # 20\ret voici deux derniers morceaux \r\n
 # 12\r\sans saut de ligne\r\n
 # 0\r\r\n
-# >>>>>>> a79334d6c75fc4d3b30849ac582d6bd87ff8ca45
-# """
-# >>>>>>> d23dd2223622a9c200a0915303924be34a8b5571
->>>>>>> dcb425420fcf50931e17471ef14fc365467b8ed8:exec_serv/python/telnetbulle.py
+
 
 raw_byte = str.encode(raw)
 with telnetlib.Telnet(host, port, timeout) as session:

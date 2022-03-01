@@ -155,7 +155,8 @@ std::string go_directory(Bundle_for_response bfr, serverConf conf){
                     response.append(body);
                 }
             }
-            return go_error(403, conf, bfr);
+            else
+                return go_error(403, conf, bfr);
         }
         else{
             return response;
@@ -175,20 +176,23 @@ std::string go_simple_upload(Bundle_for_response bfr, serverConf conf){
     std::string way = "";
     std::string te;
     std::cout << "check post filename " << bfr.re.filename << std::endl;
-    if (conf.http.data()[bfr.specs][bfr.loc]["upload_dir"].size() > 0)
+    if (conf.http.data()[bfr.specs][bfr.loc]["upload_dir"].size() > 0){
         way.append(conf.http.data()[bfr.specs][bfr.loc]["upload_dir"][0]);
+        way = way.substr(1, way.size() - 1);
+    }
     if (bfr.absolut_path.size() > 1)
-        te = bfr.absolut_path.substr(0, bfr.absolut_path.find_last_of("/"));
+        te = way + "/";
     else
-        te = bfr.absolut_path;
-    te.append(way);
+        te = bfr.absolut_path + way + "/";
+    // te.append(way);
+    // te.append("/");
     // chdir(te.c_str());
     te.append(bfr.re.filename);
     if (bfr.re.body == "")
         return "HTTP/1.1 204 NO CONTENT";
     std::cout << "open file " << te << std::endl;
     std::ofstream fs;
-    fs.open(bfr.re.filename.c_str());
+    fs.open(te.c_str());
     fs << bfr.re.body;
     std::cerr << bfr.re.filename.c_str() << bfr.re.body << std::endl;
     fs.close();
@@ -363,11 +367,15 @@ Bundle_for_response confirm_used_server(Bundle_for_response bfr, serverConf conf
     std::cout << "absolut path" << bfr.absolut_path << std::endl;
     std::size_t d = bfr.re.page.find_last_of(".");
     if (d != bfr.re.page.npos){
-        std::string ext = bfr.re.page.substr(d);
+        std::string ext = bfr.re.page.substr(d, bfr.re.page.size() - d);
         if (conf.http.data()[bfr.specs][bfr.loc]["cgi"].size() > 0){
             if (ext == conf.http.data()[bfr.specs][bfr.loc]["cgi"][0])
                 bfr.re.is_cgi = true;
+            else
+                bfr.re.is_cgi = false;
         }
+        else
+            bfr.re.is_cgi = false;
     }
     if (conf.http.data()[bfr.specs]["server"]["client_max_body_size"].size() > 0){
         unsigned int g = atoi(conf.http.data()[bfr.specs]["server"]["client_max_body_size"][0].c_str());
