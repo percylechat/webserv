@@ -1,2 +1,2 @@
-b'400 Bad Request Content-Type: text/html Context-Lenght: 101\n\n<html><body>400 BAD REQUEST<img src="error/400.jpeg" alt="" width="600" height="750"> </body></html>'
+b'HTTP/1.1 400 Bad Request Content-Type: text/html Context-Lenght: 101\n\n<html><body>400 BAD REQUEST<img src="error/400.jpeg" alt="" width="600" height="750"> </body></html>'
 Done

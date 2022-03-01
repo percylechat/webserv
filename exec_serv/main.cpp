@@ -53,7 +53,7 @@ std::string findExtension(std::string filepath)
 
 std::string set_error(int err){
     std::string error_msg = "";
-    std::string response = "";
+    std::string response = "HTTP/1.1 ";
     if (err == 400){
 // for now for missing extension in file
         error_msg = "Bad Request";
