@@ -83,8 +83,8 @@ std::string set_error(int err){
         error_msg = "Method Not Allowed";
         response.append("405 ");
         response.append(error_msg);
-        response.append(" Content-Type: text/html Context-Lenght: 109\n\n");
-        response.append("<html><body>405 METHOD NOT ALLOWED <img src=\"error/405.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+        response.append(" Content-Type: text/html Context-Lenght: 108\n\n");
+        response.append("<html><body>405 METHOD NOT ALLOWED<img src=\"error/405.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
     }
     else if (err == 411){
 // content lenght missing
@@ -92,31 +92,31 @@ std::string set_error(int err){
         response.append("411 ");
         response.append(error_msg);
         response.append(" Content-Type: text/html Context-Lenght: 106\n\n");
-        response.append("<html><body>411 LENGHT REQUIRED <img src=\"error/411.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+        response.append("<html><body>411 LENGTH REQUIRED <img src=\"error/411.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
     }
     else if (err == 413){
 // content lenght missing
         error_msg = "Playload Too Large";
         response.append("413 ");
         response.append(error_msg);
-        response.append(" Content-Type: text/html Context-Lenght: 109\n\n");
-        response.append("<html><body>413 PLAYLOAD TOO LARGE <img src=\"error/413.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+        response.append(" Content-Type: text/html Context-Lenght: 108\n\n");
+        response.append("<html><body>413 PLAYLOAD TOO LARGE<img src=\"error/413.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
     }
     else if (err == 500){
 // For now, couldn't delete file
         error_msg = "Internal Server Error";
         response.append("500 ");
         response.append(error_msg);
-        response.append(" Content-Type: text/html Context-Lenght: 112\n\n");
-        response.append("<html><body>500 INTERNAL SERVER ERROR <img src=\"error/500.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+        response.append(" Content-Type: text/html Context-Lenght: 111\n\n");
+        response.append("<html><body>500 INTERNAL SERVER ERROR<img src=\"error/500.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
     }
     else if (err == 505){
 // bad hhtp protocol version
         error_msg = "HTTP Version not supported";
         response.append("505 ");
         response.append(error_msg);
-        response.append(" Content-Type: text/html Context-Lenght: 57\n\n");
-        response.append("<html><body>500 HTTP VERSION NOT SUPPORTED</body></html>");
+        response.append(" Content-Type: text/html Context-Lenght: 116\n\n");
+        response.append("<html><body>505 HTTP VERSION NOT SUPPORTED<img src=\"error/505.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
     }
     return response;
 }
