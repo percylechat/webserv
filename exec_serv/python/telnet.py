@@ -22,12 +22,14 @@ timeout = 100
 # Host: 127.0.0.1:8082
 # Content-Type: text/plain
 # filename= "test.txt"
-# Content-Lenght: 22 \r\n\r
-# hello bebe chat mignon
+# Content-Lenght: 357 \r\n\r
+# hello bebe chat mignon*****************************************************************************************************************
+# *********************************************************************************************************************************************
+# *******************************************************************************
 # """
+# 413 PLAYLOAD TOO LARGE ERROR PAGE FOUND IN CONF FILE
 
-#chunked encoding upload
-# raw = """POST / HTTP/1.1
+# raw = """POST /ugly_cat/chat.jpg HTTP/1.1
 # Host: 127.0.0.1:8082
 # Content-Type: text/plain
 # filename= "hello.txt"
@@ -38,7 +40,22 @@ timeout = 100
 # 12\r\sans saut de ligne\r\n
 # 0\r\r\n
 # """
-# 404 NOT FOUND ERROR PAGE FOUND IN CONF FILE
+# 201 CREATED
+
+# raw = """GET /ugly_cat/chat.jpg HTTP/1.1
+# Host: 127.0.0.1:8082
+# Content-Type: text/plain
+# Content-Length: 1000
+# filename= "hello.txt"
+# Transfer-Encoding: chunked\r\n\r
+# 26\r\nVoici les données du premier morceau\r\n\r
+# 1C\ret voici un second morceau\r\n\r\n
+# 20\ret voici deux derniers morceaux \r\n
+# 12\r\sans saut de ligne\r\n
+# 0\r\r\n
+# """
+# 200 OK
+# OK *
 
 # raw = """GET / HTTP/1.0
 # Host: 127.0.0.1:8082
@@ -55,18 +72,18 @@ timeout = 100
 # 505 HTTP VERSION NOT SUPPORTED - ERROR PAGE FOUND IN CONF FILE
 # OK *
 
-# raw = """GET / HTTP/1.0
-# Host: 127.0.0.1:8082
-# Content-Type: text/plain
-# Content-Length: 1000
-# filename= "hello.txt"
-# Transfer-Encoding: chunked\r\n\r
-# 26\r\nVoici les données du premier morceau\r\n\r
-# 1C\ret voici un second morceau\r\n\r\n
-# 20\ret voici deux derniers morceaux \r\n
-# 12\r\sans saut de ligne\r\n
-# 0\r\r\n
-# """
+raw = """GET / HTTP/1.0
+Host: 127.0.0.1:8082
+Content-Type: text/plain
+Content-Length: 1000
+filename= "hello.txt"
+Transfer-Encoding: chunked\r\n\r
+26\r\nVoici les données du premier morceau\r\n\r
+1C\ret voici un second morceau\r\n\r\n
+20\ret voici deux derniers morceaux \r\n
+12\r\sans saut de ligne\r\n
+0\r\r\n
+"""
 # 505 HTTP VERSION NOT SUPPORTED - ERROR PAGE NOT FOUND IN CONF FILE
 # OK *
 

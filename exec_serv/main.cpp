@@ -51,6 +51,76 @@ std::string findExtension(std::string filepath)
         return "image/" + ext;
 }
 
+std::string set_error(int err){
+    std::string error_msg = "";
+    std::string response = "";
+    if (err == 400){
+// for now for missing extension in file
+        error_msg = "Bad Request";
+        response.append("400 ");
+        response.append(error_msg);
+        response.append(" Content-Type: text/html Context-Lenght: 101\n\n");
+        response.append("<html><body>400 FORBIDDEN<img src=\"error/400.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+    }
+    if (err == 403){
+// for now for missing extension in file
+        error_msg = "Forbidden";
+        response.append("403 ");
+        response.append(error_msg);
+        response.append(" Content-Type: text/html Context-Lenght: 99\n\n");
+        response.append("<html><body>403 FORBIDDEN<img src=\"error/403.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+    }
+    else if (err == 404){
+// for now, couldn't open file so does not exist
+        error_msg = "Not Found";
+        response.append("404 ");
+        response.append(error_msg);
+        response.append(" Content-Type: text/html Context-Lenght: 91\n\n");
+        response.append("<html><body>404 NOT FOUND<img src=\"error/404.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+    }
+    else if (err == 405){
+// is not GET POST or DELETE
+        error_msg = "Method Not Allowed";
+        response.append("405 ");
+        response.append(error_msg);
+        response.append(" Content-Type: text/html Context-Lenght: 109\n\n");
+        response.append("<html><body>405 METHOD NOT ALLOWED <img src=\"error/405.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+    }
+    else if (err == 411){
+// content lenght missing
+        error_msg = "Length Required";
+        response.append("411 ");
+        response.append(error_msg);
+        response.append(" Content-Type: text/html Context-Lenght: 106\n\n");
+        response.append("<html><body>411 LENGHT REQUIRED <img src=\"error/411.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+    }
+    else if (err == 413){
+// content lenght missing
+        error_msg = "Playload Too Large";
+        response.append("413 ");
+        response.append(error_msg);
+        response.append(" Content-Type: text/html Context-Lenght: 109\n\n");
+        response.append("<html><body>413 PLAYLOAD TOO LARGE <img src=\"error/413.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+    }
+    else if (err == 500){
+// For now, couldn't delete file
+        error_msg = "Internal Server Error";
+        response.append("500 ");
+        response.append(error_msg);
+        response.append(" Content-Type: text/html Context-Lenght: 112\n\n");
+        response.append("<html><body>500 INTERNAL SERVER ERROR <img src=\"error/500.jpeg\" alt=\"\" width=\"600\" height=\"750\"> </body></html>");
+    }
+    else if (err == 505){
+// bad hhtp protocol version
+        error_msg = "HTTP Version not supported";
+        response.append("505 ");
+        response.append(error_msg);
+        response.append(" Content-Type: text/html Context-Lenght: 57\n\n");
+        response.append("<html><body>500 HTTP VERSION NOT SUPPORTED</body></html>");
+    }
+    return response;
+}
+
 std::string go_error(int err, serverConf conf, Bundle_for_response bfr)
 {
 
@@ -100,20 +170,22 @@ std::string go_error(int err, serverConf conf, Bundle_for_response bfr)
     numberString = digit.str();
     if (err == 400)// for now for missing extension in file
         response.append("400 BAD REQUEST");
-    else if (err == 403)
+    else if (err == 403 && content.size())
         response.append("403 FORBIDDEN");
-    else if (err == 404)// for now, couldn't open file so does not exist
+    else if (err == 404 && content.size())// for now, couldn't open file so does not exist
         response.append("404 NOT FOUND");
-    else if (err == 405)// is not GET POST or DELETE
+    else if (err == 405 && content.size())// is not GET POST or DELETE
         response.append("405 METHOD NOT ALLOWED");
-    else if (err == 411)// content lenght missing
+    else if (err == 411 && content.size())// content lenght missing
         response.append("411 LENGTH REQUIRED");
-    else if (err == 413) // client_max_body_size : Sets the maximum allowed size of the client request body, specified in the “Content-Length” request header field. If the size in a request exceeds the configured value, the 413 (Request Entity Too Large) error is returned to the client. Setting size to 0 disables checking of client request body size.
+    else if (err == 413 && content.size()) // client_max_body_size : Sets the maximum allowed size of the client request body, specified in the “Content-Length” request header field. If the size in a request exceeds the configured value, the 413 (Request Entity Too Large) error is returned to the client. Setting size to 0 disables checking of client request body size.
         response.append("413 PAYLOAD TOO LARGE");
-    else if (err == 500)// For now, couldn't delete file
+    else if (err == 500 && content.size())// For now, couldn't delete file
         response.append("500 INTERNAL SERVER ERROR");
-    else if (err == 505)// bad hhtp protocol version
+    else if (err == 505 && content.size())// bad hhtp protocol version
         response.append("505 HTTP VERSION NOT SUPPORTED");
+    else
+        return set_error(err);
     std::cout << "content size" << content.size() << std::endl;
     if (content.size())
         response += " Content-Type: " + findExtension(prefix) + " Content-Length: " + numberString + "\r\n\r\n" + content;
@@ -377,10 +449,14 @@ Bundle_for_response confirm_used_server(Bundle_for_response bfr, serverConf conf
         else
             bfr.re.is_cgi = false;
     }
-    if (conf.http.data()[bfr.specs]["server"]["client_max_body_size"].size() > 0){
-        unsigned int g = atoi(conf.http.data()[bfr.specs]["server"]["client_max_body_size"][0].c_str());
-        if (bfr.re.body.size() > g)
-            bfr.re.error_type = 413;
+    if (conf.http.data()[bfr.specs]["server"]["client_max_body_size"].size() > 0 && atoi(conf.http.data()[bfr.specs]["server"]["client_max_body_size"][0].c_str()) > 0) {
+        int g = atoi(conf.http.data()[bfr.specs]["server"]["client_max_body_size"][0].c_str());
+        {
+            std::cout << "bfr*****************" << static_cast< int >(bfr.re.body.size()) << std::endl;
+            std::cout << "g*******************" << g << std::endl;
+            if (static_cast< int >(bfr.re.body.size()) > g)
+                bfr.re.error_type = 413;
+        }
     }
     if (conf.http.data()[bfr.specs][bfr.loc]["methods"].size() > 0){
         std::size_t h = 0;
